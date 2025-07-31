@@ -3,9 +3,12 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  UnprocessableEntityException,
+  ValidationError,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { STATUS_CODES } from 'http';
+import { ErrorDetailDto } from 'src/common/dto/error-detail.dto';
 import { ErrorDto } from 'src/common/dto/error.dto';
 
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -15,13 +18,32 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     let error: ErrorDto;
 
-    if (exception instanceof HttpException) {
+    if (exception instanceof UnprocessableEntityException) {
+      error = this.handleUnprocessableEntityException(exception);
+    } else if (exception instanceof HttpException) {
       error = this.handleHttpException(exception);
     } else {
       error = this.handleError(exception);
     }
 
     response.status(error.statusCode).json(error);
+  }
+
+  private handleUnprocessableEntityException(
+    exception: UnprocessableEntityException,
+  ): ErrorDto {
+    const r = exception.getResponse() as { message: ValidationError[] };
+    const statusCode = exception.getStatus();
+
+    const errorRes = {
+      timestamp: new Date().toISOString(),
+      statusCode,
+      error: STATUS_CODES[statusCode],
+      message: 'Validation failed',
+      details: this.extractValidationErrorDetails(r.message),
+    };
+
+    return errorRes;
   }
 
   private handleHttpException(exception: HttpException): ErrorDto {
@@ -46,5 +68,35 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     };
 
     return errorRes;
+  }
+
+  private extractValidationErrorDetails(
+    errors: ValidationError[],
+  ): ErrorDetailDto[] {
+    const extractErrors = (
+      error: ValidationError,
+      parentProperty: string = '',
+    ): ErrorDetailDto[] => {
+      const propertyPath = parentProperty
+        ? `${parentProperty}.${error.property}`
+        : error.property;
+
+      const currentErrors: ErrorDetailDto[] = Object.entries(
+        error.constraints || {},
+      ).map(([code, message]) => ({
+        property: propertyPath,
+        code,
+        message,
+      }));
+
+      const childErrors: ErrorDetailDto[] =
+        error.children?.flatMap((childError) =>
+          extractErrors(childError, propertyPath),
+        ) || [];
+
+      return [...currentErrors, ...childErrors];
+    };
+
+    return errors.flatMap((error) => extractErrors(error));
   }
 }
