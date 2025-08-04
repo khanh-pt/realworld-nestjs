@@ -1,8 +1,11 @@
+import { AllConfigType } from '@/config/config.type';
 import { ConflictException, Injectable } from '@nestjs/common';
-import { RegisterReqDto } from './dto/register.req.dto';
-import { RegisterResDto } from './dto/register.res.dto';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm/repository/Repository';
+import { RegisterReqDto } from './dto/register.req.dto';
+import { RegisterResDto } from './dto/register.res.dto';
 import { UserEntity } from './entities/user.entity';
 
 @Injectable()
@@ -10,6 +13,8 @@ export class UserService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService<AllConfigType>,
   ) {}
 
   async register(dto: RegisterReqDto): Promise<{ user: RegisterResDto }> {
@@ -36,10 +41,24 @@ export class UserService {
       user: {
         username: user.username,
         email: user.email,
-        token: 'some-jwt-token',
+        token: await this.generateAccessToken({ user_id: user.id }),
         bio: user.bio,
         image: user.image,
       },
     };
+  }
+
+  private async generateAccessToken(data: {
+    user_id: number;
+  }): Promise<string> {
+    return await this.jwtService.signAsync(
+      { user_id: data.user_id },
+      {
+        secret: this.configService.getOrThrow('jwt.secret', { infer: true }),
+        expiresIn: this.configService.getOrThrow('jwt.expiresIn', {
+          infer: true,
+        }),
+      },
+    );
   }
 }
