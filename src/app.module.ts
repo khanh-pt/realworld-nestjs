@@ -1,3 +1,4 @@
+import { ApiModule } from '@/api/api.module';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -36,7 +37,7 @@ const dbModule = TypeOrmModule.forRootAsync({
       username: configService.get('database.username', { infer: true }),
       password: configService.get('database.password', { infer: true }),
       database: configService.get('database.name', { infer: true }),
-      entities: [],
+      entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: configService.get('database.synchronize', { infer: true }),
       logger: TypeOrmCustomLogger.getInstance(
         'default',
@@ -49,7 +50,7 @@ const dbModule = TypeOrmModule.forRootAsync({
 });
 
 @Module({
-  imports: [configModule, i18nModule, dbModule],
+  imports: [ApiModule, configModule, i18nModule, dbModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -15,6 +15,9 @@ async function bootstrap() {
   const configService = app.get(ConfigService<AllConfigType>);
   const port = configService.getOrThrow('app.port', { infer: true });
 
+  // Set global prefix for all routes
+  app.setGlobalPrefix('api');
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
