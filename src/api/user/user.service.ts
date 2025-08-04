@@ -1,5 +1,10 @@
 import { AllConfigType } from '@/config/config.type';
-import { ConflictException, Injectable } from '@nestjs/common';
+import { verifyPassword } from '@/utils/hashing.util';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -52,11 +57,11 @@ export class UserService {
 
   async login(dto: LoginReqDto): Promise<{ user: LoginResDto }> {
     const user = await this.userRepository.findOne({
-      where: { email: dto.user.email, password: dto.user.password },
+      where: { email: dto.user.email },
     });
 
-    if (!user) {
-      throw new ConflictException('Invalid email or password');
+    if (!user || !(await verifyPassword(user.password, dto.user.password))) {
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     return {
