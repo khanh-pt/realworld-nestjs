@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
+import { hashPassword } from '@/utils/hashing.util';
+import {
+  BeforeInsert,
+  BeforeUpdate,
+  Column,
+  Entity,
+  Index,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity('users')
 export class UserEntity {
@@ -24,4 +32,12 @@ export class UserEntity {
 
   @Column({ default: false })
   demo: boolean;
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  async hashPassword() {
+    if (this.password) {
+      this.password = await hashPassword(this.password);
+    }
+  }
 }
