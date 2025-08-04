@@ -4,6 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm/repository/Repository';
+import { LoginReqDto } from './dto/login.req.dto';
+import { LoginResDto } from './dto/login.res.dto';
 import { RegisterReqDto } from './dto/register.req.dto';
 import { RegisterResDto } from './dto/register.res.dto';
 import { UserEntity } from './entities/user.entity';
@@ -36,6 +38,26 @@ export class UserService {
 
     const user = this.userRepository.create(dto.user);
     await this.userRepository.save(user);
+
+    return {
+      user: {
+        username: user.username,
+        email: user.email,
+        token: await this.generateAccessToken({ user_id: user.id }),
+        bio: user.bio,
+        image: user.image,
+      },
+    };
+  }
+
+  async login(dto: LoginReqDto): Promise<{ user: LoginResDto }> {
+    const user = await this.userRepository.findOne({
+      where: { email: dto.user.email, password: dto.user.password },
+    });
+
+    if (!user) {
+      throw new ConflictException('Invalid email or password');
+    }
 
     return {
       user: {
