@@ -16,6 +16,8 @@ import { LoginReqDto } from './dto/login.req.dto';
 import { LoginResDto } from './dto/login.res.dto';
 import { RegisterReqDto } from './dto/register.req.dto';
 import { RegisterResDto } from './dto/register.res.dto';
+import { UpdateUserReqDto } from './dto/update-user.req.dto';
+import { UpdateUserResDto } from './dto/update-user.res.dto';
 import { UserEntity } from './entities/user.entity';
 
 @Injectable()
@@ -96,6 +98,32 @@ export class UserService {
         token: await this.generateAccessToken({ id: user.id }),
         bio: foundUser.bio,
         image: foundUser.image,
+      },
+    };
+  }
+
+  async updateUser(
+    user: UserPayload & JwtPayload,
+    dto: UpdateUserReqDto,
+  ): Promise<{ user: UpdateUserResDto }> {
+    const foundUser = await this.userRepository.findOne({
+      where: { id: user.id },
+    });
+
+    if (!foundUser) {
+      throw new UnauthorizedException(`User id: ${user.id} not found`);
+    }
+
+    const updatedUser = this.userRepository.merge(foundUser, dto.user);
+    await this.userRepository.save(updatedUser);
+
+    return {
+      user: {
+        username: updatedUser.username,
+        email: updatedUser.email,
+        token: await this.generateAccessToken({ id: user.id }),
+        bio: updatedUser.bio,
+        image: updatedUser.image,
       },
     };
   }
