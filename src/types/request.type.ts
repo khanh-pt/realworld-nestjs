@@ -1,7 +1,13 @@
-import { JwtPayload } from '@/api/jwt/types/jwt-payload.type';
-import { UserPayload } from '@/api/jwt/types/user-payload.type';
 import { Request } from 'express';
 
+export type CurrentUser = {
+  id: number;
+  username: string;
+  email: string;
+  bio: string | null;
+  image: string | null;
+};
+
 export interface AuthenticatedRequest extends Request {
-  user: UserPayload & JwtPayload;
+  currentUser: CurrentUser;
 }

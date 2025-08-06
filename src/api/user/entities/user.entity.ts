@@ -24,11 +24,11 @@ export class UserEntity {
   @Column()
   password: string;
 
-  @Column({ nullable: true })
-  bio?: string;
+  @Column({ type: String, nullable: true })
+  bio: string | null;
 
-  @Column({ nullable: true })
-  image?: string;
+  @Column({ type: String, nullable: true })
+  image: string | null;
 
   @Column({ default: false })
   demo: boolean;

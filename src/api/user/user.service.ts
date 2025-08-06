@@ -9,7 +9,6 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm/repository/Repository';
-import { JwtPayload } from '../jwt/types/jwt-payload.type';
 import { UserPayload } from '../jwt/types/user-payload.type';
 import { GetUserResDto } from './dto/get-user.res.dto';
 import { LoginReqDto } from './dto/login.req.dto';
@@ -19,6 +18,7 @@ import { RegisterResDto } from './dto/register.res.dto';
 import { UpdateUserReqDto } from './dto/update-user.req.dto';
 import { UpdateUserResDto } from './dto/update-user.res.dto';
 import { UserEntity } from './entities/user.entity';
+import { CurrentUser } from 'src/types/request.type';
 
 @Injectable()
 export class UserService {
@@ -80,39 +80,25 @@ export class UserService {
     };
   }
 
-  async getUser(
-    user: UserPayload & JwtPayload,
-  ): Promise<{ user: GetUserResDto }> {
-    const foundUser = await this.userRepository.findOne({
-      where: { id: user.id },
-    });
-
-    if (!foundUser) {
-      throw new UnauthorizedException(`User id: ${user.id} not found`);
-    }
-
+  async getUser(currentUser: CurrentUser): Promise<{ user: GetUserResDto }> {
     return {
       user: {
-        username: foundUser.username,
-        email: foundUser.email,
-        token: await this.generateAccessToken({ id: user.id }),
-        bio: foundUser.bio,
-        image: foundUser.image,
+        username: currentUser.username,
+        email: currentUser.email,
+        token: await this.generateAccessToken({ id: currentUser.id }),
+        bio: currentUser.bio,
+        image: currentUser.image,
       },
     };
   }
 
   async updateUser(
-    user: UserPayload & JwtPayload,
+    currentUser: CurrentUser,
     dto: UpdateUserReqDto,
   ): Promise<{ user: UpdateUserResDto }> {
-    const foundUser = await this.userRepository.findOne({
-      where: { id: user.id },
+    const foundUser = await this.userRepository.findOneOrFail({
+      where: { id: currentUser.id },
     });
-
-    if (!foundUser) {
-      throw new UnauthorizedException(`User id: ${user.id} not found`);
-    }
 
     const updatedUser = this.userRepository.merge(foundUser, dto.user);
     await this.userRepository.save(updatedUser);
@@ -121,11 +107,17 @@ export class UserService {
       user: {
         username: updatedUser.username,
         email: updatedUser.email,
-        token: await this.generateAccessToken({ id: user.id }),
+        token: await this.generateAccessToken({ id: currentUser.id }),
         bio: updatedUser.bio,
         image: updatedUser.image,
       },
     };
+  }
+
+  async findById(id: number): Promise<UserEntity | null> {
+    return await this.userRepository.findOne({
+      where: { id },
+    });
   }
 
   private async generateAccessToken(userPayload: UserPayload): Promise<string> {
