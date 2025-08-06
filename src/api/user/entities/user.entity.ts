@@ -1,4 +1,3 @@
-import { hashPassword } from '@/utils/hashing.util';
 import {
   BeforeInsert,
   BeforeUpdate,
@@ -7,6 +6,7 @@ import {
   Index,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { hashPassword } from '../../../utils/hashing.util';
 
 @Entity('users')
 export class UserEntity {
