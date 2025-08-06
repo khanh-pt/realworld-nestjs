@@ -32,7 +32,7 @@ export class UserController {
   async getUser(
     @Request() req: AuthenticatedRequest,
   ): Promise<{ user: GetUserResDto }> {
-    return await this.userService.getUser(req.user);
+    return await this.userService.getUser(req.currentUser);
   }
 
   @Put('user')
@@ -40,6 +40,6 @@ export class UserController {
     @Request() req: AuthenticatedRequest,
     @Body() dto: UpdateUserReqDto,
   ): Promise<{ user: UpdateUserResDto }> {
-    return await this.userService.updateUser(req.user, dto);
+    return await this.userService.updateUser(req.currentUser, dto);
   }
 }
