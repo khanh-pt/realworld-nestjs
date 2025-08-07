@@ -70,4 +70,37 @@ export class ProfileService {
       },
     };
   }
+
+  async unfollowUser(
+    followerId: number,
+    username: string,
+  ): Promise<{ profile: FollowUserResDto }> {
+    const followingUser = await this.userRepository.findOne({
+      where: { username },
+    });
+
+    if (!followingUser) {
+      throw new NotFoundException('User not found');
+    }
+    if (followerId === followingUser.id) {
+      throw new BadRequestException('You cannot unfollow yourself');
+    }
+
+    const follow = await this.followRepository.findOne({
+      where: { followerId, followingId: followingUser.id },
+    });
+
+    if (follow) {
+      await this.followRepository.remove(follow);
+    }
+
+    return {
+      profile: {
+        username: followingUser.username,
+        bio: followingUser.bio,
+        image: followingUser.image,
+        following: false,
+      },
+    };
+  }
 }
