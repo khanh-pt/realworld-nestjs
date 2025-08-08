@@ -4,9 +4,11 @@ import {
   Column,
   Entity,
   Index,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { hashPassword } from '../../../utils/hashing.util';
+import { ArticleEntity } from '../../../api/article/entities/article.entity';
 
 @Entity('users')
 export class UserEntity {
@@ -32,6 +34,9 @@ export class UserEntity {
 
   @Column({ default: false })
   demo: boolean;
+
+  @OneToMany(() => ArticleEntity, (article) => article.author)
+  articles: ArticleEntity[];
 
   @BeforeInsert()
   @BeforeUpdate()
