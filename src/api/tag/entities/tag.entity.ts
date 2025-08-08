@@ -1,5 +1,12 @@
 import { AbstractEntity } from '../../../database/entities/abstract.entity';
-import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { ArticleEntity } from '../../article/entities/article.entity';
+import {
+  Column,
+  Entity,
+  Index,
+  ManyToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity('tags')
 export class TagEntity extends AbstractEntity {
@@ -9,4 +16,7 @@ export class TagEntity extends AbstractEntity {
   @Column()
   @Index('UQ_tag_name', { unique: true })
   name: string;
+
+  @ManyToMany(() => ArticleEntity, (article) => article.tags)
+  articles: ArticleEntity[];
 }
