@@ -1,3 +1,4 @@
+import { AbstractEntity } from '../../../database/entities/abstract.entity';
 import { UserEntity } from '../../../api/user/entities/user.entity';
 import {
   Entity,
@@ -9,7 +10,7 @@ import {
 import { Column } from 'typeorm/decorator/columns/Column';
 
 @Entity('articles')
-export class ArticleEntity {
+export class ArticleEntity extends AbstractEntity {
   @PrimaryGeneratedColumn({ primaryKeyConstraintName: 'PK_article_id' })
   id: number;
 

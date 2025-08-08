@@ -9,9 +9,10 @@ import {
 } from 'typeorm';
 import { hashPassword } from '../../../utils/hashing.util';
 import { ArticleEntity } from '../../../api/article/entities/article.entity';
+import { AbstractEntity } from '../../../database/entities/abstract.entity';
 
 @Entity('users')
-export class UserEntity {
+export class UserEntity extends AbstractEntity {
   @PrimaryGeneratedColumn({ primaryKeyConstraintName: 'PK_user_id' })
   id: number;
 
