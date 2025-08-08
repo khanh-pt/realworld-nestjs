@@ -1,8 +1,11 @@
 import { AbstractEntity } from '../../../database/entities/abstract.entity';
 import { UserEntity } from '../../../api/user/entities/user.entity';
+import { TagEntity } from '../../tag/entities/tag.entity';
 import {
   Entity,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
   Index,
@@ -36,4 +39,18 @@ export class ArticleEntity extends AbstractEntity {
     foreignKeyConstraintName: 'FK_article_author_id',
   })
   author: UserEntity;
+
+  @ManyToMany(() => TagEntity, (tag) => tag.articles)
+  @JoinTable({
+    name: 'article_tags',
+    joinColumn: {
+      name: 'article_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'tag_id',
+      referencedColumnName: 'id',
+    },
+  })
+  tags: TagEntity[];
 }
