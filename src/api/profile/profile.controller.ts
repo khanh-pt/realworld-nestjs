@@ -1,16 +1,20 @@
 import { Controller, Delete, Get, Param, Post, Request } from '@nestjs/common';
-import { Public } from 'src/decorators/public.decorator';
-import { AuthenticatedRequest } from 'src/types/request.type';
+import { AuthenticatedRequest, CurrentUser } from 'src/types/request.type';
 import { ProfileService } from './profile.service';
+import { GetCurrentUser } from 'src/decorators/get-current-user.decorator';
+import { AuthOptional } from 'src/decorators/auth-optional.decorator';
 
 @Controller('profiles')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
-  @Public()
+  @AuthOptional()
   @Get('/:username')
-  async getProfile(@Param('username') username: string) {
-    return await this.profileService.getProfile(username);
+  async getProfile(
+    @Param('username') username: string,
+    @GetCurrentUser() currentUser?: CurrentUser,
+  ) {
+    return await this.profileService.getProfile(username, currentUser);
   }
 
   @Post('/:username/follow')

@@ -2,7 +2,7 @@ import { JwtPayload } from '@/api/jwt/types/jwt-payload.type';
 import { UserPayload } from '@/api/jwt/types/user-payload.type';
 import { UserService } from '@/api/user/user.service';
 import { AllConfigType } from '@/config/config.type';
-import { IS_PUBLIC } from '@/constants/app.constant';
+import { IS_AUTH_OPTIONAL, IS_PUBLIC } from '@/constants/app.constant';
 import { CurrentUser } from 'src/types/request.type';
 import {
   CanActivate,
@@ -34,8 +34,17 @@ export class AuthGuard implements CanActivate {
       return true;
     }
 
+    const isAuthOptional = this.reflector.getAllAndOverride<boolean>(
+      IS_AUTH_OPTIONAL,
+      [context.getHandler(), context.getClass()],
+    );
+
     const request = context.switchToHttp().getRequest<Request>();
     const accessToken = this.extractTokenFromHeader(request);
+
+    if (isAuthOptional && !accessToken) {
+      return true;
+    }
 
     if (!accessToken) {
       throw new UnauthorizedException('Access token is missing');

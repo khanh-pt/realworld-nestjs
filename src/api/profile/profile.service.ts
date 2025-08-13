@@ -9,6 +9,7 @@ import { FollowEntity } from '../follow/entities/follow.entity';
 import { UserEntity } from '../user/entities/user.entity';
 import { FollowUserResDto } from './dto/follow-user.res.dto';
 import { GetProfileResDto } from './dto/get-profile.res.dto';
+import { CurrentUser } from 'src/types/request.type';
 
 @Injectable()
 export class ProfileService {
@@ -19,18 +20,27 @@ export class ProfileService {
     private readonly followRepository: Repository<FollowEntity>,
   ) {}
 
-  async getProfile(username: string): Promise<{ profile: GetProfileResDto }> {
+  async getProfile(
+    username: string,
+    currentUser?: CurrentUser,
+  ): Promise<{ profile: GetProfileResDto }> {
     const user = await this.userRepository.findOne({ where: { username } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
+    const following = currentUser
+      ? await this.followRepository.exists({
+          where: { followerId: currentUser.id, followingId: user.id },
+        })
+      : false;
 
     return {
       profile: {
         username: user.username,
         bio: user.bio,
         image: user.image,
-        following: false,
+        following,
       },
     };
   }
