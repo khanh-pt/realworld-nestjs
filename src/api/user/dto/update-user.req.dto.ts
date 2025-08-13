@@ -24,6 +24,14 @@ class UserData {
   @IsString()
   @MinLength(6)
   password: string;
+
+  @IsOptional()
+  @IsString()
+  bio: string;
+
+  @IsOptional()
+  @IsString()
+  image: string;
 }
 
 export class UpdateUserReqDto {

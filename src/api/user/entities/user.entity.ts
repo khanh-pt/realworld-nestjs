@@ -1,4 +1,5 @@
 import {
+  AfterLoad,
   BeforeInsert,
   BeforeUpdate,
   Column,
@@ -39,10 +40,22 @@ export class UserEntity extends AbstractEntity {
   @OneToMany(() => ArticleEntity, (article) => article.author)
   articles: ArticleEntity[];
 
+  // Store original password after loading from database
+  private originalPassword: string;
+
+  @AfterLoad()
+  storeOriginalPassword() {
+    this.originalPassword = this.password;
+  }
+
   @BeforeInsert()
   @BeforeUpdate()
   async hashPassword() {
-    if (this.password) {
+    // Only hash if password has changed or it's a new entity (no originalPassword)
+    if (
+      this.password &&
+      (!this.originalPassword || this.password !== this.originalPassword)
+    ) {
       this.password = await hashPassword(this.password);
     }
   }

@@ -6,3 +6,4 @@ export enum Environment {
 }
 
 export const IS_PUBLIC = 'isPublic';
+export const IS_AUTH_OPTIONAL = 'isAuthOptional';
