@@ -157,6 +157,33 @@ export class ArticleService {
     return { article: await this.mapToArticleResponse(article, currentUser) };
   }
 
+  async unfavoriteArticle(
+    slug: string,
+    currentUser: CurrentUser,
+  ): Promise<{ article: GetArticleResDto }> {
+    const article = await this.articleRepository.findOne({
+      where: { slug },
+      relations: ['author', 'tags', 'users'],
+    });
+
+    if (!article) {
+      throw new Error('Article not found');
+    }
+
+    const foundUser = await this.userRepository.findOneOrFail({
+      where: { id: currentUser.id },
+    });
+
+    const favorited = article.users?.find((user) => user.id === foundUser.id);
+
+    if (favorited) {
+      article.users = article.users?.filter((user) => user.id !== foundUser.id);
+      await this.articleRepository.save(article);
+    }
+
+    return { article: await this.mapToArticleResponse(article, currentUser) };
+  }
+
   private async mapToArticleResponse(
     article: ArticleEntity,
     currentUser?: CurrentUser,

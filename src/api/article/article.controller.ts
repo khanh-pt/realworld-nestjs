@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -53,5 +54,13 @@ export class ArticleController {
     @Request() req: AuthenticatedRequest,
   ): Promise<{ article: GetArticleResDto }> {
     return this.articleService.favoriteArticle(slug, req.currentUser);
+  }
+
+  @Delete(':slug/favorite')
+  async unfavoriteArticle(
+    @Param('slug') slug: string,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<{ article: GetArticleResDto }> {
+    return this.articleService.unfavoriteArticle(slug, req.currentUser);
   }
 }
