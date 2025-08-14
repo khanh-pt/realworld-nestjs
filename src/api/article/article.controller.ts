@@ -1,8 +1,11 @@
-import { Body, Controller, Post, Request } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Request } from '@nestjs/common';
 import { ArticleService } from './article.service';
-import { AuthenticatedRequest } from 'src/types/request.type';
+import { AuthenticatedRequest, CurrentUser } from 'src/types/request.type';
 import { CreateArticleReqDto } from './dto/create-article.req.dto';
 import { CreateArticleResDto } from './dto/create-article.res.dto';
+import { AuthOptional } from 'src/decorators/auth-optional.decorator';
+import { GetCurrentUser } from 'src/decorators/get-current-user.decorator';
+import { GetArticleResDto } from './dto/get-article.res.dto';
 
 @Controller('articles')
 export class ArticleController {
@@ -14,5 +17,14 @@ export class ArticleController {
     @Body() dto: CreateArticleReqDto,
   ): Promise<{ article: CreateArticleResDto }> {
     return await this.articleService.createArticle(req.currentUser, dto);
+  }
+
+  @AuthOptional()
+  @Get(':slug')
+  async getArticle(
+    @Param('slug') slug: string,
+    @GetCurrentUser() currentUser?: CurrentUser,
+  ): Promise<{ article: GetArticleResDto }> {
+    return this.articleService.getArticle(slug, currentUser);
   }
 }
