@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ArticleEntity } from './entities/article.entity';
+import { GetAllArticlesReqDto } from './dto/get-all-articles.req.dto';
+import { GetAllArticlesResDto } from './dto/get-all-articles.res.dto';
 import { CurrentUser } from 'src/types/request.type';
 import { CreateArticleReqDto } from './dto/create-article.req.dto';
 import { CreateArticleResDto } from './dto/create-article.res.dto';
@@ -20,6 +22,52 @@ export class ArticleService {
     @InjectRepository(TagEntity)
     private readonly tagRepository: Repository<TagEntity>,
   ) {}
+
+  async findAll(
+    query: GetAllArticlesReqDto,
+    currentUser?: CurrentUser,
+  ): Promise<GetAllArticlesResDto> {
+    const { tag, author, favorited, limit = 20, offset = 0 } = query;
+
+    const queryBuilder = this.articleRepository
+      .createQueryBuilder('article')
+      .leftJoinAndSelect('article.author', 'author')
+      .leftJoinAndSelect('article.tags', 'tags')
+      .orderBy('article.createdAt', 'DESC');
+
+    // Filter by tag
+    if (tag) {
+      queryBuilder
+        .innerJoin('article.tags', 'filterTag')
+        .andWhere('filterTag.name = :tag', { tag });
+    }
+
+    // Filter by author username
+    if (author) {
+      queryBuilder.andWhere('author.username = :author', { author });
+    }
+
+    // Filter by favorited by user (will need favorites table later)
+    if (favorited) {
+      // TODO: Implement when favorites table is created
+      // For now, we'll ignore this filter
+    }
+
+    // Apply pagination
+    queryBuilder.skip(offset).take(limit);
+
+    const [articles, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      articles: await Promise.all(
+        articles.map(
+          async (article) =>
+            await this.mapToArticleResponse(article, currentUser),
+        ),
+      ),
+      articlesCount: total,
+    };
+  }
 
   async createArticle(
     currentUser: CurrentUser,
