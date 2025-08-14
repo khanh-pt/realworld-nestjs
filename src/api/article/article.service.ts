@@ -11,6 +11,7 @@ import { TagEntity } from '../tag/entities/tag.entity';
 import { FollowEntity } from '../follow/entities/follow.entity';
 import slug from 'slug';
 import { GetArticleResDto } from './dto/get-article.res.dto';
+import { UserEntity } from '../user/entities/user.entity';
 
 @Injectable()
 export class ArticleService {
@@ -21,6 +22,8 @@ export class ArticleService {
     private readonly followRepository: Repository<FollowEntity>,
     @InjectRepository(TagEntity)
     private readonly tagRepository: Repository<TagEntity>,
+    @InjectRepository(UserEntity)
+    private readonly userRepository: Repository<UserEntity>,
   ) {}
 
   async findAll(
@@ -33,6 +36,7 @@ export class ArticleService {
       .createQueryBuilder('article')
       .leftJoinAndSelect('article.author', 'author')
       .leftJoinAndSelect('article.tags', 'tags')
+      .leftJoinAndSelect('article.users', 'users')
       .orderBy('article.createdAt', 'DESC');
 
     // Filter by tag
@@ -116,11 +120,38 @@ export class ArticleService {
   ): Promise<{ article: GetArticleResDto }> {
     const article = await this.articleRepository.findOne({
       where: { slug },
-      relations: ['author', 'tags'],
+      relations: ['author', 'tags', 'users'],
     });
 
     if (!article) {
       throw new Error('Article not found');
+    }
+
+    return { article: await this.mapToArticleResponse(article, currentUser) };
+  }
+
+  async favoriteArticle(
+    slug: string,
+    currentUser: CurrentUser,
+  ): Promise<{ article: GetArticleResDto }> {
+    const article = await this.articleRepository.findOne({
+      where: { slug },
+      relations: ['author', 'tags', 'users'],
+    });
+
+    if (!article) {
+      throw new Error('Article not found');
+    }
+
+    const foundUser = await this.userRepository.findOneOrFail({
+      where: { id: currentUser.id },
+    });
+
+    const favorited = article.users?.find((user) => user.id === foundUser.id);
+
+    if (!favorited) {
+      article.users?.push(foundUser);
+      await this.articleRepository.save(article);
     }
 
     return { article: await this.mapToArticleResponse(article, currentUser) };
@@ -136,6 +167,13 @@ export class ArticleService {
         })
       : false;
 
+    const favorited =
+      currentUser && article.users
+        ? article.users.some((user) => user.id === currentUser.id)
+        : false;
+
+    const favoritesCount = article.users?.length || 0;
+
     return {
       slug: article.slug,
       title: article.title,
@@ -144,8 +182,8 @@ export class ArticleService {
       tagList: article.tags.map((tag) => tag.name),
       createdAt: article.createdAt.toISOString(),
       updatedAt: article.updatedAt.toISOString(),
-      favorited: false, // TODO: Check if current user favorited this article
-      favoritesCount: 0, // TODO: Count favorites from favorites table
+      favorited,
+      favoritesCount,
       author: {
         username: article.author.username,
         bio: article.author.bio,

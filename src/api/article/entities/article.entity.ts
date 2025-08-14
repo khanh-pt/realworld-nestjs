@@ -66,5 +66,5 @@ export class ArticleEntity extends AbstractEntity {
       referencedColumnName: 'id',
     },
   })
-  users: UserEntity[];
+  users: UserEntity[] | undefined;
 }
