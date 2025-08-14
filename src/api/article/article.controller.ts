@@ -46,4 +46,12 @@ export class ArticleController {
   ): Promise<{ article: GetArticleResDto }> {
     return this.articleService.getArticle(slug, currentUser);
   }
+
+  @Post(':slug/favorite')
+  async favoriteArticle(
+    @Param('slug') slug: string,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<{ article: GetArticleResDto }> {
+    return this.articleService.favoriteArticle(slug, req.currentUser);
+  }
 }
