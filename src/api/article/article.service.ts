@@ -8,6 +8,7 @@ import { CreateArticleResDto } from './dto/create-article.res.dto';
 import { TagEntity } from '../tag/entities/tag.entity';
 import { FollowEntity } from '../follow/entities/follow.entity';
 import slug from 'slug';
+import { GetArticleResDto } from './dto/get-article.res.dto';
 
 @Injectable()
 export class ArticleService {
@@ -59,6 +60,22 @@ export class ArticleService {
     return {
       article: await this.mapToArticleResponse(savedArticle, currentUser),
     };
+  }
+
+  async getArticle(
+    slug: string,
+    currentUser?: CurrentUser,
+  ): Promise<{ article: GetArticleResDto }> {
+    const article = await this.articleRepository.findOne({
+      where: { slug },
+      relations: ['author', 'tags'],
+    });
+
+    if (!article) {
+      throw new Error('Article not found');
+    }
+
+    return { article: await this.mapToArticleResponse(article, currentUser) };
   }
 
   private async mapToArticleResponse(
