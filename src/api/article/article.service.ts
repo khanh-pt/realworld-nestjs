@@ -185,6 +185,18 @@ export class ArticleService {
     return { article: await this.mapToArticleResponse(article, currentUser) };
   }
 
+  async deleteArticle(slug: string, currentUser: CurrentUser): Promise<void> {
+    const article = await this.articleRepository.findOne({
+      where: { slug, author: { id: currentUser.id } },
+    });
+
+    if (!article) {
+      throw new Error('Article not found');
+    }
+
+    await this.articleRepository.remove(article);
+  }
+
   private async mapToArticleResponse(
     article: ArticleEntity,
     currentUser?: CurrentUser,
