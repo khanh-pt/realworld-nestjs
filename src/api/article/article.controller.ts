@@ -34,6 +34,14 @@ export class ArticleController {
     return this.articleService.findAll(query, currentUser);
   }
 
+  @Get('/feed')
+  async feedArticle(
+    @Query() query: GetAllArticlesReqDto,
+    @GetCurrentUser() currentUser?: CurrentUser,
+  ): Promise<GetAllArticlesResDto> {
+    return this.articleService.findAll(query, currentUser);
+  }
+
   @Post()
   async createArticle(
     @Request() req: AuthenticatedRequest,
