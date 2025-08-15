@@ -10,9 +10,13 @@ import { Response } from 'express';
 import { STATUS_CODES } from 'http';
 import { ErrorDetailDto } from 'src/common/dto/error-detail.dto';
 import { ErrorDto } from 'src/common/dto/error.dto';
+import { QueryFailedError } from 'typeorm/error/QueryFailedError';
 
 export class GlobalExceptionFilter implements ExceptionFilter {
-  catch(exception: Error | HttpException, host: ArgumentsHost): void {
+  catch(
+    exception: Error | HttpException | QueryFailedError,
+    host: ArgumentsHost,
+  ): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
@@ -22,6 +26,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       error = this.handleUnprocessableEntityException(exception);
     } else if (exception instanceof HttpException) {
       error = this.handleHttpException(exception);
+    } else if (exception instanceof QueryFailedError) {
+      error = this.handleQueryFailedError(exception);
     } else {
       error = this.handleError(exception);
     }
@@ -54,6 +60,27 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       error: STATUS_CODES[statusCode],
       message: exception.message,
     };
+
+    return errorRes;
+  }
+
+  private handleQueryFailedError(error: QueryFailedError): ErrorDto {
+    const r = error as QueryFailedError & { constraint?: string };
+    const { status, message } = r.constraint?.startsWith('UQ')
+      ? {
+          status: HttpStatus.CONFLICT,
+          message: r.driverError.message,
+        }
+      : {
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: 'Has occurred an internal server error',
+        };
+    const errorRes = {
+      timestamp: new Date().toISOString(),
+      statusCode: status,
+      error: STATUS_CODES[status],
+      message,
+    } as unknown as ErrorDto;
 
     return errorRes;
   }
