@@ -13,6 +13,9 @@ import slug from 'slug';
 import { GetArticleResDto } from './dto/get-article.res.dto';
 import { UserEntity } from '../user/entities/user.entity';
 import { UpdateArticleReqDto } from './dto/update-article.req.dto';
+import { CreateCommentReqDto } from '../comment/dto/create-comment.req.dto';
+import { CreateCommentResDto } from '../comment/dto/create-comment.res.dto';
+import { CommentEntity } from '../comment/entities/comment.entity';
 
 @Injectable()
 export class ArticleService {
@@ -25,6 +28,8 @@ export class ArticleService {
     private readonly tagRepository: Repository<TagEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    @InjectRepository(CommentEntity)
+    private readonly commentRepository: Repository<CommentEntity>,
   ) {}
 
   async findAll(
@@ -245,6 +250,34 @@ export class ArticleService {
     };
   }
 
+  async addComment(
+    currentUser: CurrentUser,
+    slug: string,
+    dto: CreateCommentReqDto,
+  ): Promise<{ comment: CreateCommentResDto }> {
+    const article = await this.articleRepository.findOne({
+      where: { slug },
+      relations: ['author'],
+    });
+
+    if (!article) {
+      throw new Error('Article not found');
+    }
+
+    const userEntity = await this.userRepository.findOneOrFail({
+      where: { id: currentUser.id },
+    });
+
+    const comment = new CommentEntity();
+    comment.body = dto.comment.body;
+    comment.author = userEntity;
+    comment.article = article;
+
+    await this.commentRepository.save(comment);
+
+    return { comment: await this.mapToCommentResponse(comment) };
+  }
+
   private async mapToArticleResponse(
     article: ArticleEntity,
     currentUser?: CurrentUser,
@@ -276,6 +309,30 @@ export class ArticleService {
         username: article.author.username,
         bio: article.author.bio,
         image: article.author.image,
+        following,
+      },
+    };
+  }
+
+  private async mapToCommentResponse(
+    comment: CommentEntity,
+    currentUser?: CurrentUser,
+  ): Promise<CreateCommentResDto> {
+    const following = currentUser
+      ? await this.followRepository.exists({
+          where: { followerId: currentUser.id, followingId: comment.author.id },
+        })
+      : false;
+
+    return {
+      id: comment.id,
+      createdAt: comment.createdAt.toISOString(),
+      updatedAt: comment.updatedAt.toISOString(),
+      body: comment.body,
+      author: {
+        username: comment.author.username,
+        bio: comment.author.bio,
+        image: comment.author.image,
         following,
       },
     };

@@ -65,21 +65,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private handleQueryFailedError(error: QueryFailedError): ErrorDto {
-    const r = error as QueryFailedError & { constraint?: string };
-    const { status, message } = r.constraint?.startsWith('UQ')
-      ? {
-          status: HttpStatus.CONFLICT,
-          message: r.driverError.message,
-        }
-      : {
-          status: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'Has occurred an internal server error',
-        };
     const errorRes = {
       timestamp: new Date().toISOString(),
-      statusCode: status,
-      error: STATUS_CODES[status],
-      message,
+      statusCode: HttpStatus.CONFLICT,
+      error: STATUS_CODES[HttpStatus.CONFLICT],
+      message: error.message,
     } as unknown as ErrorDto;
 
     return errorRes;
