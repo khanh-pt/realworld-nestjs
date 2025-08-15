@@ -51,10 +51,11 @@ export class ArticleService {
       queryBuilder.andWhere('author.username = :author', { author });
     }
 
-    // Filter by favorited by user (will need favorites table later)
+    // Filter by favorited by user
     if (favorited) {
-      // TODO: Implement when favorites table is created
-      // For now, we'll ignore this filter
+      queryBuilder
+        .innerJoin('article.users', 'favoritedUser')
+        .andWhere('favoritedUser.username = :favorited', { favorited });
     }
 
     // Apply pagination
