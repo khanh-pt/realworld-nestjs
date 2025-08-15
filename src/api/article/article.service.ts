@@ -278,6 +278,25 @@ export class ArticleService {
     return { comment: await this.mapToCommentResponse(comment) };
   }
 
+  async getComments(
+    slug: string,
+    currentUser?: CurrentUser,
+  ): Promise<{ comments: CreateCommentResDto[] }> {
+    const comments = await this.commentRepository.find({
+      where: { article: { slug } },
+      relations: ['author'],
+    });
+
+    return {
+      comments: await Promise.all(
+        comments.map(
+          async (comment) =>
+            await this.mapToCommentResponse(comment, currentUser),
+        ),
+      ),
+    };
+  }
+
   private async mapToArticleResponse(
     article: ArticleEntity,
     currentUser?: CurrentUser,
