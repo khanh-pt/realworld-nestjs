@@ -20,6 +20,8 @@ import { GetArticleResDto } from './dto/get-article.res.dto';
 import { GetAllArticlesReqDto } from './dto/get-all-articles.req.dto';
 import { GetAllArticlesResDto } from './dto/get-all-articles.res.dto';
 import { UpdateArticleReqDto } from './dto/update-article.req.dto';
+import { CreateCommentReqDto } from '../comment/dto/create-comment.req.dto';
+import { CreateCommentResDto } from '../comment/dto/create-comment.res.dto';
 
 @Controller('articles')
 export class ArticleController {
@@ -91,5 +93,14 @@ export class ArticleController {
     @Body() dto: UpdateArticleReqDto,
   ): Promise<{ article: GetArticleResDto }> {
     return this.articleService.updateArticle(req.currentUser, slug, dto);
+  }
+
+  @Post(':slug/comments')
+  async addComment(
+    @Request() req: AuthenticatedRequest,
+    @Param('slug') slug: string,
+    @Body() dto: CreateCommentReqDto,
+  ): Promise<{ comment: CreateCommentResDto }> {
+    return this.articleService.addComment(req.currentUser, slug, dto);
   }
 }
