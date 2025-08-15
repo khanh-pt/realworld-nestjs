@@ -297,6 +297,28 @@ export class ArticleService {
     };
   }
 
+  async deleteComment({
+    currentUser,
+    slug,
+    id,
+  }: {
+    currentUser: CurrentUser;
+    slug: string;
+    id: number;
+  }): Promise<void> {
+    const comment = await this.commentRepository.findOne({
+      where: { id, article: { slug }, author: { id: currentUser.id } },
+    });
+
+    if (!comment) {
+      throw new Error(
+        'Comment not found or you do not have permission to delete it',
+      );
+    }
+
+    await this.commentRepository.remove(comment);
+  }
+
   private async mapToArticleResponse(
     article: ArticleEntity,
     currentUser?: CurrentUser,
