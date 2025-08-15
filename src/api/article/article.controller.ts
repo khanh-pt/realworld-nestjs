@@ -103,4 +103,13 @@ export class ArticleController {
   ): Promise<{ comment: CreateCommentResDto }> {
     return this.articleService.addComment(req.currentUser, slug, dto);
   }
+
+  @AuthOptional()
+  @Get(':slug/comments')
+  async getComments(
+    @Param('slug') slug: string,
+    @GetCurrentUser() currentUser?: CurrentUser,
+  ): Promise<{ comments: CreateCommentResDto[] }> {
+    return this.articleService.getComments(slug, currentUser);
+  }
 }
