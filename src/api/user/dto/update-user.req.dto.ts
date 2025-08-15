@@ -12,26 +12,26 @@ class UserData {
   @IsOptional()
   @IsNotEmpty()
   @IsString()
-  username: string;
+  username?: string;
 
   @IsOptional()
   @IsNotEmpty()
   @IsEmail()
-  email: string;
+  email?: string;
 
   @IsOptional()
   @IsNotEmpty()
   @IsString()
   @MinLength(6)
-  password: string;
+  password?: string;
 
   @IsOptional()
   @IsString()
-  bio: string;
+  bio?: string;
 
   @IsOptional()
   @IsString()
-  image: string;
+  image?: string;
 }
 
 export class UpdateUserReqDto {
