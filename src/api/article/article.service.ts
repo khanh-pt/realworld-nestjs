@@ -43,8 +43,7 @@ export class ArticleService {
       .leftJoinAndSelect('article.author', 'author')
       .leftJoinAndSelect('article.tags', 'tags')
       .leftJoinAndSelect('article.users', 'users')
-      .orderBy('article.createdAt', 'DESC')
-      .addOrderBy('tags.id', 'DESC');
+      .orderBy('article.createdAt', 'DESC');
 
     // Filter by tag
     if (tag) {
@@ -369,7 +368,9 @@ export class ArticleService {
       title: article.title,
       description: article.description,
       body: article.body,
-      tagList: article.tags.map((tag) => tag.name),
+      tagList: article.tags
+        .sort((a, b) => b.id - a.id) // Sort tags by ID in descending order
+        .map((tag) => tag.name),
       createdAt: article.createdAt.toISOString(),
       updatedAt: article.updatedAt.toISOString(),
       favorited,
