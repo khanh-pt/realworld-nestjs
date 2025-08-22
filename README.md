@@ -67,7 +67,8 @@ This is a fully-featured backend implementation of the [RealWorld](https://realw
 - 🌐 **CORS**: Configured for cross-origin requests
 - 🏗️ **Architecture**: Modular design with separation of concerns
 - 🔄 **Database Migrations**: TypeORM migrations for schema management
-- 🌍 **Internationalization**: Multi-language support
+- � **Database Seeding**: Comprehensive test data generation with realistic content
+- �🌍 **Internationalization**: Multi-language support
 - 🧪 **Testing**: Comprehensive test suite
 
 ## 📁 Project Structure
@@ -143,6 +144,9 @@ APP_ENV=development
 ```bash
 # Run database migrations
 pnpm run migration:run
+
+# (Optional) Seed database with test data
+pnpm run seed
 ```
 
 ### 5. Start the application
@@ -237,6 +241,16 @@ pnpm run migration:revert
 
 # Show migration status
 pnpm run migration:show
+```
+
+### Database Seeding
+
+```bash
+# Seed the database with realistic test data
+pnpm run seed
+
+# View seeding statistics and summary
+pnpm run seed:summary
 ```
 
 ## 🔧 Development Scripts
