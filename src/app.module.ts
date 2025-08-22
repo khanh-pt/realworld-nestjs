@@ -10,7 +10,6 @@ import * as path from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AllConfigType } from './config/config.type';
-import TypeOrmCustomLogger from './utils/typeorm-custom-logger';
 
 const configModule = ConfigModule.forRoot({
   isGlobal: true,
@@ -40,12 +39,8 @@ const dbModule = TypeOrmModule.forRootAsync({
       database: configService.get('database.name', { infer: true }),
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: configService.get('database.synchronize', { infer: true }),
-      logger: TypeOrmCustomLogger.getInstance(
-        'default',
-        configService.get('database.logging', { infer: true })
-          ? ['error', 'warn', 'query', 'schema']
-          : ['error', 'warn'],
-      ),
+      logger: 'advanced-console',
+      logging: ['error', 'warn', 'query', 'schema'],
     } as TypeOrmModuleOptions;
   },
 });
