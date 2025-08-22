@@ -23,7 +23,9 @@
     "migration:create": "pnpm typeorm migration:create",
     "migration:run": "pnpm typeorm migration:run",
     "migration:revert": "pnpm typeorm migration:revert",
-    "migration:show": "pnpm typeorm migration:show"
+    "migration:show": "pnpm typeorm migration:show",
+    "seed": "ts-node -r tsconfig-paths/register src/console/seed.ts",
+    "seed:summary": "ts-node -r tsconfig-paths/register src/console/seed-summary.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
