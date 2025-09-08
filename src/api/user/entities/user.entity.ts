@@ -12,6 +12,7 @@ import {
 import { hashPassword } from '../../../utils/hashing.util';
 import { ArticleEntity } from '../../../api/article/entities/article.entity';
 import { AbstractEntity } from '../../../database/entities/abstract.entity';
+import { SessionEntity } from './session.entity';
 
 @Entity('users')
 export class UserEntity extends AbstractEntity {
@@ -43,6 +44,9 @@ export class UserEntity extends AbstractEntity {
 
   @ManyToMany(() => ArticleEntity, (article) => article.users)
   favoritedArticles: ArticleEntity[];
+
+  @OneToMany(() => SessionEntity, (session) => session.user)
+  sessions: SessionEntity[];
 
   // Store original password after loading from database
   private originalPassword: string;

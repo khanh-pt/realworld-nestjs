@@ -18,6 +18,8 @@ import { RegisterResDto } from './dto/register.res.dto';
 import { UpdateUserReqDto } from './dto/update-user.req.dto';
 import { UpdateUserResDto } from './dto/update-user.res.dto';
 import { UserService } from './user.service';
+import { RefreshTokenReqDto } from './dto/refresh-token.req.dto';
+import { RefreshTokenResDto } from './dto/refresh-token.res.dto';
 
 @ApiTags('Users')
 @Controller()
@@ -88,6 +90,12 @@ export class UserController {
   @ApiUnprocessableEntityResponse({ description: 'Invalid credentials' })
   async login(@Body() dto: LoginReqDto): Promise<{ user: LoginResDto }> {
     return await this.userService.login(dto);
+  }
+
+  async refreshToken(
+    @Body() dto: RefreshTokenReqDto,
+  ): Promise<RefreshTokenResDto> {
+    return await this.userService.refreshToken(dto.refreshToken);
   }
 
   @Get('user')
