@@ -19,12 +19,19 @@ import { UpdateUserReqDto } from './dto/update-user.req.dto';
 import { UpdateUserResDto } from './dto/update-user.res.dto';
 import { UserEntity } from './entities/user.entity';
 import { CurrentUser } from 'src/types/request.type';
+import { RefreshTokenResDto } from './dto/refresh-token.res.dto';
+import { SessionPayload } from '../jwt/types/session-payload.type';
+import { SessionEntity } from './entities/session.entity';
+import * as crypto from 'crypto';
+import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    @InjectRepository(SessionEntity)
+    private readonly sessionRepository: Repository<SessionEntity>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService<AllConfigType>,
   ) {}
@@ -69,11 +76,26 @@ export class UserService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    const hash = crypto
+      .createHash('sha256')
+      .update(randomStringGenerator())
+      .digest('hex');
+
+    const session = this.sessionRepository.create({
+      userId: user.id,
+      hash,
+    });
+    await this.sessionRepository.save(session);
+
     return {
       user: {
         username: user.username,
         email: user.email,
         token: await this.generateAccessToken({ id: user.id }),
+        refreshToken: await this.generateRefreshToken({
+          id: session.id,
+          hash,
+        }),
         bio: user.bio,
         image: user.image,
       },
@@ -120,12 +142,73 @@ export class UserService {
     });
   }
 
+  async refreshToken(refreshToken: string): Promise<RefreshTokenResDto> {
+    const payload = await this.jwtService.verifyAsync<SessionPayload>(
+      refreshToken,
+      {
+        secret: this.configService.getOrThrow('jwt.refreshSecret', {
+          infer: true,
+        }),
+      },
+    );
+
+    const session = await this.sessionRepository.findOne({
+      where: { id: payload.id },
+    });
+    if (!session || session.hash !== payload.hash) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { id: session.userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const newHash = crypto
+      .createHash('sha256')
+      .update(randomStringGenerator())
+      .digest('hex');
+
+    this.sessionRepository.merge(session, { hash: newHash });
+    await this.sessionRepository.save(session);
+
+    const newAccessToken = await this.generateAccessToken({ id: user.id });
+    const newRefreshToken = await this.generateRefreshToken({
+      id: session.id,
+      hash: newHash,
+    });
+
+    return {
+      token: newAccessToken,
+      refreshToken: newRefreshToken,
+    };
+  }
+
   private async generateAccessToken(userPayload: UserPayload): Promise<string> {
     return await this.jwtService.signAsync(
       { id: userPayload.id },
       {
         secret: this.configService.getOrThrow('jwt.secret', { infer: true }),
         expiresIn: this.configService.getOrThrow('jwt.expiresIn', {
+          infer: true,
+        }),
+      },
+    );
+  }
+
+  private async generateRefreshToken(
+    sessionPayload: SessionPayload,
+  ): Promise<string> {
+    return await this.jwtService.signAsync(
+      { id: sessionPayload.id, hash: sessionPayload.hash },
+      {
+        secret: this.configService.getOrThrow('jwt.refreshSecret', {
+          infer: true,
+        }),
+        expiresIn: this.configService.getOrThrow('jwt.refreshExpiresIn', {
           infer: true,
         }),
       },

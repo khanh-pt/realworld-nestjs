@@ -4,4 +4,5 @@ export class LoginResDto {
   token: string;
   bio: string | null;
   image: string | null;
+  refreshToken: string;
 }
