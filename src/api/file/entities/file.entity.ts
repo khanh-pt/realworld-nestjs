@@ -1,10 +1,5 @@
-import {
-  BaseEntity,
-  Column,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { AbstractEntity } from '../../../database/entities/abstract.entity';
 
 interface FileMetadata {
   identified?: boolean;
@@ -15,7 +10,7 @@ interface FileMetadata {
 }
 
 @Entity('files')
-export class FileEntity extends BaseEntity {
+export class FileEntity extends AbstractEntity {
   @PrimaryGeneratedColumn({ primaryKeyConstraintName: 'PK_file_id' })
   id: number;
 
@@ -39,5 +34,6 @@ export class FileEntity extends BaseEntity {
   byteSize: number;
 
   @Column()
+  @Index('IDX_file_checksum')
   checksum: string;
 }

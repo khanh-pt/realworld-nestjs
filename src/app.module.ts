@@ -1,6 +1,7 @@
 import { ApiModule } from '@/api/api.module';
 import jwtConfig from '@/api/jwt/config/jwt.config';
 import appConfig from '@/config/app.config';
+import gcsConfig from '@/config/gcs.config';
 import databaseConfig from '@/database/config/database.config';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -13,7 +14,7 @@ import { AllConfigType } from './config/config.type';
 
 const configModule = ConfigModule.forRoot({
   isGlobal: true,
-  load: [appConfig, databaseConfig, jwtConfig],
+  load: [appConfig, databaseConfig, jwtConfig, gcsConfig],
   envFilePath: ['.env'],
 });
 
