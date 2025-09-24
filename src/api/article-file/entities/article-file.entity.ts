@@ -1,7 +1,8 @@
-import { Column, Entity, Index } from 'typeorm';
+import { FileEntity } from '@/api/file/entities/file.entity';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 
 export enum RoleEnum {
-  THUMBNAIL = 'thumbnail',
+  THUMBNAILS = 'thumbnails',
   IMAGES = 'images',
   VIDEOS = 'videos',
 }
@@ -22,4 +23,8 @@ export class ArticleFileEntity {
 
   @Column()
   role: RoleEnum;
+
+  @ManyToOne(() => FileEntity, (file) => file.articleFiles)
+  @JoinColumn({ name: 'file_id' })
+  file: FileEntity;
 }

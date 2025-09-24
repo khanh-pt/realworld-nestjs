@@ -1,5 +1,6 @@
 import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 import { AbstractEntity } from '../../../database/entities/abstract.entity';
+import { ArticleFileEntity } from '@/api/article-file/entities/article-file.entity';
 
 interface FileMetadata {
   identified?: boolean;
@@ -36,4 +37,7 @@ export class FileEntity extends AbstractEntity {
   @Column()
   @Index('IDX_file_checksum')
   checksum: string;
+
+  // Relations
+  articleFiles: ArticleFileEntity[];
 }

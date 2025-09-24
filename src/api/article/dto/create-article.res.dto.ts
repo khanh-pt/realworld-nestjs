@@ -1,4 +1,7 @@
+import { FileResDto } from '@/api/file/dto/file.res.dto';
+
 export class CreateArticleResDto {
+  id: number;
   title: string;
   slug: string;
   body: string;
@@ -14,4 +17,5 @@ export class CreateArticleResDto {
   };
   favorited: boolean;
   favoritesCount: number;
+  files: FileResDto[] | [];
 }

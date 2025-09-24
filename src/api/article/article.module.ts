@@ -7,6 +7,9 @@ import { TagEntity } from '../tag/entities/tag.entity';
 import { FollowEntity } from '../follow/entities/follow.entity';
 import { UserEntity } from '../user/entities/user.entity';
 import { CommentEntity } from '../comment/entities/comment.entity';
+import { FileService } from '../file/file.service';
+import { FileEntity } from '../file/entities/file.entity';
+import { ArticleFileEntity } from '../article-file/entities/article-file.entity';
 
 @Module({
   imports: [
@@ -16,9 +19,11 @@ import { CommentEntity } from '../comment/entities/comment.entity';
       TagEntity,
       UserEntity,
       CommentEntity,
+      FileEntity,
+      ArticleFileEntity,
     ]),
   ],
   controllers: [ArticleController],
-  providers: [ArticleService],
+  providers: [ArticleService, FileService],
 })
 export class ArticleModule {}

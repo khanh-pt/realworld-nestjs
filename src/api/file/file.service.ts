@@ -7,6 +7,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { FileEntity } from './entities/file.entity';
 import { CreateFileMetadataDto, PresignedUrlResponseDto } from './dto/file.dto';
 import { AllConfigType } from '@/config/config.type';
+import { FileResDto } from './dto/file.res.dto';
+import { RoleEnum } from '../article-file/entities/article-file.entity';
 
 @Injectable()
 export class FileService {
@@ -82,21 +84,11 @@ export class FileService {
 
     const savedFile = await this.fileRepository.save(fileEntity);
 
-    // Generate presigned URL for upload
-    const options: GetSignedUrlConfig = {
-      version: 'v4',
-      action: 'write',
-      expires:
-        Date.now() +
-        this.configService.getOrThrow('gcs.signedUrlExpires', { infer: true }) *
-          1000,
+    const uploadUrl = await this.getSignedUrlForUpload({
+      key,
       contentType: createFileDto.contentType,
-      extensionHeaders: {
-        'x-goog-content-length-range': `0,${createFileDto.size}`,
-      },
-    };
-
-    const [uploadUrl] = await this.bucket.file(key).getSignedUrl(options);
+      size: createFileDto.size,
+    });
 
     return {
       fileId: savedFile.id,
@@ -112,8 +104,76 @@ export class FileService {
     });
   }
 
+  async serializeFiles(
+    fileInfos: { file: FileEntity; role: RoleEnum }[],
+  ): Promise<FileResDto[]> {
+    return Promise.all(
+      fileInfos.map((fileInfo) => this.serializeFile(fileInfo)),
+    );
+  }
+
+  async serializeFile(fileInfo: {
+    file: FileEntity;
+    role: RoleEnum;
+  }): Promise<FileResDto> {
+    const fileEntity = fileInfo.file;
+    const url = await this.generateSignedUrlForDisplay(fileEntity.key);
+
+    return {
+      id: fileEntity.id,
+      key: fileEntity.key,
+      filename: fileEntity.filename,
+      contentType: fileEntity.contentType,
+      url,
+      byteSize: fileEntity.byteSize,
+      role: fileInfo.role,
+      createdAt: fileEntity.createdAt,
+      updatedAt: fileEntity.updatedAt,
+    };
+  }
+
   private getFileExtension(filename: string): string {
     const lastDotIndex = filename.lastIndexOf('.');
     return lastDotIndex !== -1 ? filename.substring(lastDotIndex) : '';
+  }
+
+  private async getSignedUrlForUpload({
+    key,
+    contentType,
+    size,
+  }: {
+    key: string;
+    contentType: string;
+    size: number;
+  }): Promise<string> {
+    // Generate presigned URL for upload
+    const options: GetSignedUrlConfig = {
+      version: 'v4',
+      action: 'write',
+      expires:
+        Date.now() +
+        this.configService.getOrThrow('gcs.signedUrlExpires', { infer: true }) *
+          1000,
+      contentType,
+      extensionHeaders: {
+        'x-goog-content-length-range': `0,${size}`,
+      },
+    };
+
+    const [signedUrl] = await this.bucket.file(key).getSignedUrl(options);
+    return signedUrl;
+  }
+
+  private async generateSignedUrlForDisplay(key: string): Promise<string> {
+    // public URL: `https://storage.googleapis.com/${this.bucket.name}/${fileEntity.key}`,
+    // private URL
+    const options: GetSignedUrlConfig = {
+      version: 'v4',
+      action: 'read', // For reading/displaying files
+      expires: Date.now() + 15 * 60 * 1000, // 15 minutes from now
+    };
+
+    const [signedUrl] = await this.bucket.file(key).getSignedUrl(options);
+    return signedUrl;
   }
 }
