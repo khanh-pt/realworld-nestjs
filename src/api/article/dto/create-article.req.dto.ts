@@ -40,6 +40,37 @@ class ArticleData {
   @IsArray()
   @IsString({ each: true })
   tagList?: string[] = [];
+
+  // Allow add thumbnail
+  @ApiProperty({
+    description: 'ID of the thumbnail file associated with the article',
+    example: 1,
+    type: Number,
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  fileId?: number;
+
+  @ApiProperty({
+    description: 'Key of the thumbnail file associated with the article',
+    example: 'uploads/unique-file-key.jpg',
+    type: String,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  key?: string;
+
+  @ApiProperty({
+    description: 'Role of the file associated with the article',
+    example: 'thumbnail | image | video',
+    type: String,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  role?: string;
 }
 
 export class CreateArticleReqDto {

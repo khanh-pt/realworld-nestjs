@@ -13,6 +13,5 @@ import gcsConfig from '@/config/gcs.config';
   ],
   controllers: [FileController],
   providers: [FileService],
-  exports: [FileService],
 })
 export class FileModule {}
