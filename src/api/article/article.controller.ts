@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Post,
   Query,
@@ -62,5 +63,14 @@ export class ArticleController {
     @Request() req: AuthenticatedRequest,
   ): Promise<{ article: GetArticleResDto }> {
     return this.articleService.unfavoriteArticle(slug, req.currentUser);
+  }
+
+  @Delete(':slug')
+  @HttpCode(204)
+  async deleteArticle(
+    @Param('slug') slug: string,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<void> {
+    await this.articleService.deleteArticle(slug, req.currentUser);
   }
 }
