@@ -1,3 +1,4 @@
+import { AbstractEntity } from '../../../database/entities/abstract.entity';
 import { Check, Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('follows')
@@ -5,7 +6,7 @@ import { Check, Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
   unique: true,
 })
 @Check('CHK_follow_not_self', '"follower_id" != "following_id"')
-export class FollowEntity {
+export class FollowEntity extends AbstractEntity {
   @PrimaryGeneratedColumn({ primaryKeyConstraintName: 'PK_follow_id' })
   id: number;
 
