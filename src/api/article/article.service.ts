@@ -70,12 +70,11 @@ export class ArticleService {
 
     const [articles, total] = await queryBuilder.getManyAndCount();
 
+    const followingIds = await this.getFollowingIds(currentUser);
+
     return {
-      articles: await Promise.all(
-        articles.map(
-          async (article) =>
-            await this.mapToArticleResponse(article, currentUser),
-        ),
+      articles: articles.map((article) =>
+        this.mapToArticleResponse({ article, currentUser, followingIds }),
       ),
       articlesCount: total,
     };
@@ -115,7 +114,10 @@ export class ArticleService {
     }
 
     return {
-      article: await this.mapToArticleResponse(savedArticle, currentUser),
+      article: this.mapToArticleResponse({
+        article: savedArticle,
+        currentUser,
+      }),
     };
   }
 
@@ -137,7 +139,15 @@ export class ArticleService {
       throw new Error('Article not found');
     }
 
-    return { article: await this.mapToArticleResponse(article, currentUser) };
+    const followingIds = await this.getFollowingIds(currentUser);
+
+    return {
+      article: this.mapToArticleResponse({
+        article,
+        currentUser,
+        followingIds,
+      }),
+    };
   }
 
   async favoriteArticle(
@@ -169,7 +179,15 @@ export class ArticleService {
       await this.articleRepository.save(article);
     }
 
-    return { article: await this.mapToArticleResponse(article, currentUser) };
+    const followingIds = await this.getFollowingIds(currentUser);
+
+    return {
+      article: this.mapToArticleResponse({
+        article,
+        currentUser,
+        followingIds,
+      }),
+    };
   }
 
   async unfavoriteArticle(
@@ -200,8 +218,15 @@ export class ArticleService {
       article.users = article.users?.filter((user) => user.id !== foundUser.id);
       await this.articleRepository.save(article);
     }
+    const followingIds = await this.getFollowingIds(currentUser);
 
-    return { article: await this.mapToArticleResponse(article, currentUser) };
+    return {
+      article: this.mapToArticleResponse({
+        article,
+        currentUser,
+        followingIds,
+      }),
+    };
   }
 
   async deleteArticle(slug: string, currentUser: CurrentUser): Promise<void> {
@@ -246,7 +271,10 @@ export class ArticleService {
     const updatedArticle = await this.articleRepository.save(article);
 
     return {
-      article: await this.mapToArticleResponse(updatedArticle, currentUser),
+      article: this.mapToArticleResponse({
+        article: updatedArticle,
+        currentUser,
+      }),
     };
   }
 
@@ -275,7 +303,7 @@ export class ArticleService {
 
     await this.commentRepository.save(comment);
 
-    return { comment: await this.mapToCommentResponse(comment) };
+    return { comment: this.mapToCommentResponse({ comment }) };
   }
 
   async getComments(
@@ -287,12 +315,11 @@ export class ArticleService {
       relations: ['author'],
     });
 
+    const followingIds = await this.getFollowingIds(currentUser);
+
     return {
-      comments: await Promise.all(
-        comments.map(
-          async (comment) =>
-            await this.mapToCommentResponse(comment, currentUser),
-        ),
+      comments: comments.map((comment) =>
+        this.mapToCommentResponse({ comment, followingIds }),
       ),
     };
   }
@@ -319,15 +346,16 @@ export class ArticleService {
     await this.commentRepository.remove(comment);
   }
 
-  private async mapToArticleResponse(
-    article: ArticleEntity,
-    currentUser?: CurrentUser,
-  ): Promise<CreateArticleResDto> {
-    const following = currentUser
-      ? await this.followRepository.exists({
-          where: { followerId: currentUser.id, followingId: article.author.id },
-        })
-      : false;
+  private mapToArticleResponse({
+    article,
+    currentUser,
+    followingIds = [],
+  }: {
+    article: ArticleEntity;
+    currentUser?: CurrentUser;
+    followingIds?: number[];
+  }): CreateArticleResDto {
+    const following = followingIds.includes(article.author.id);
 
     const favorited =
       currentUser && article.users
@@ -355,15 +383,14 @@ export class ArticleService {
     };
   }
 
-  private async mapToCommentResponse(
-    comment: CommentEntity,
-    currentUser?: CurrentUser,
-  ): Promise<CreateCommentResDto> {
-    const following = currentUser
-      ? await this.followRepository.exists({
-          where: { followerId: currentUser.id, followingId: comment.author.id },
-        })
-      : false;
+  private mapToCommentResponse({
+    comment,
+    followingIds = [],
+  }: {
+    comment: CommentEntity;
+    followingIds?: number[];
+  }): CreateCommentResDto {
+    const following = followingIds.includes(comment.author.id);
 
     return {
       id: comment.id,
@@ -377,6 +404,19 @@ export class ArticleService {
         following,
       },
     };
+  }
+
+  private async getFollowingIds(currentUser?: CurrentUser): Promise<number[]> {
+    if (!currentUser) {
+      return [];
+    }
+
+    const follows = await this.followRepository.find({
+      where: { followerId: currentUser.id },
+      select: ['followingId'],
+    });
+
+    return follows.map((follow) => follow.followingId);
   }
 
   private generateSlug(title: string): string {
