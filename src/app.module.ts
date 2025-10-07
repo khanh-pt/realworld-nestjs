@@ -2,6 +2,7 @@ import { ApiModule } from '@/api/api.module';
 import jwtConfig from '@/api/jwt/config/jwt.config';
 import appConfig from '@/config/app.config';
 import gcsConfig from '@/config/gcs.config';
+import elasticsearchConfig from '@/config/elasticsearch.config';
 import databaseConfig from '@/database/config/database.config';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -14,7 +15,7 @@ import { AllConfigType } from './config/config.type';
 
 const configModule = ConfigModule.forRoot({
   isGlobal: true,
-  load: [appConfig, databaseConfig, jwtConfig, gcsConfig],
+  load: [appConfig, databaseConfig, jwtConfig, gcsConfig, elasticsearchConfig],
   envFilePath: ['.env'],
 });
 
@@ -40,7 +41,7 @@ const dbModule = TypeOrmModule.forRootAsync({
       database: configService.get('database.name', { infer: true }),
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: configService.get('database.synchronize', { infer: true }),
-      logger: 'advanced-console',
+      logger: 'formatted-console',
       logging: ['error', 'warn', 'query', 'schema'],
     } as TypeOrmModuleOptions;
   },

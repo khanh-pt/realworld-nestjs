@@ -22,11 +22,13 @@ import {
 } from '../article-file/entities/article-file.entity';
 import { FileEntity } from '../file/entities/file.entity';
 import { FileService } from '../file/file.service';
+import { ArticleSearchService } from '../article-search/article-search.service';
 
 @Injectable()
 export class ArticleService {
   constructor(
     private readonly fileService: FileService,
+    private readonly articleSearchService: ArticleSearchService,
     @InjectRepository(ArticleEntity)
     private readonly articleRepository: Repository<ArticleEntity>,
     @InjectRepository(FollowEntity)
@@ -96,19 +98,20 @@ export class ArticleService {
     currentUser: CurrentUser,
     dto: CreateArticleReqDto,
   ): Promise<{ article: CreateArticleResDto }> {
+    let file: FileEntity | null = null;
     // check valid fileId, key and role if provided
     if (dto.article.fileId && dto.article.key && dto.article.role) {
       if (!Object.values(RoleEnum).includes(dto.article.role as RoleEnum)) {
         throw new Error('Invalid role. Must be thumbnail, image, or video.');
       }
-    }
 
-    const file = await this.fileRepository.findOne({
-      where: { id: dto.article.fileId, key: dto.article.key },
-    });
+      file = await this.fileRepository.findOne({
+        where: { id: dto.article.fileId, key: dto.article.key },
+      });
 
-    if (!file) {
-      throw new Error('File not found with the provided fileId and key.');
+      if (!file) {
+        throw new Error('File not found with the provided fileId and key.');
+      }
     }
 
     const article = this.articleRepository.create({
@@ -140,24 +143,40 @@ export class ArticleService {
       }
     }
 
-    const articleFile = await this.articleFileRepository.findOne({
-      where: {
-        articleId: savedArticle.id,
-        fileId: file.id,
-        role: dto.article.role as RoleEnum,
-      },
-    });
-
-    if (!articleFile) {
-      const newArticleFile = this.articleFileRepository.create({
-        articleId: savedArticle.id,
-        fileId: file.id,
-        role: dto.article.role as RoleEnum,
+    if (file) {
+      const articleFile = await this.articleFileRepository.findOne({
+        where: {
+          articleId: savedArticle.id,
+          fileId: file.id,
+          role: dto.article.role as RoleEnum,
+        },
       });
-      await this.articleFileRepository.save(newArticleFile);
+
+      if (!articleFile) {
+        const newArticleFile = this.articleFileRepository.create({
+          articleId: savedArticle.id,
+          fileId: file.id,
+          role: dto.article.role as RoleEnum,
+        });
+        await this.articleFileRepository.save(newArticleFile);
+      }
     }
 
-    const articleFiles = await this.getArticleFiles(article.id);
+    const articleFiles = await this.getArticleFiles(savedArticle.id);
+
+    // Index the article in Elasticsearch
+    try {
+      const fullArticle = await this.articleRepository.findOne({
+        where: { id: savedArticle.id },
+        relations: ['author', 'tags', 'users'],
+      });
+      if (fullArticle) {
+        await this.articleSearchService.indexArticle(fullArticle);
+      }
+    } catch (error) {
+      // Log the error but don't fail the request
+      console.error('Failed to index article in Elasticsearch:', error);
+    }
 
     return {
       article: await this.mapToArticleResponse({
@@ -288,7 +307,16 @@ export class ArticleService {
       throw new Error('Article not found');
     }
 
+    const articleId = article.id;
     await this.articleRepository.remove(article);
+
+    // Remove from Elasticsearch
+    try {
+      await this.articleSearchService.deleteArticle(articleId);
+    } catch (error) {
+      // Log the error but don't fail the request
+      console.error('Failed to delete article from Elasticsearch:', error);
+    }
   }
 
   async updateArticle(
@@ -319,6 +347,20 @@ export class ArticleService {
     }
 
     const updatedArticle = await this.articleRepository.save(article);
+
+    // Update in Elasticsearch
+    try {
+      const fullArticle = await this.articleRepository.findOne({
+        where: { id: updatedArticle.id },
+        relations: ['author', 'tags', 'users'],
+      });
+      if (fullArticle) {
+        await this.articleSearchService.updateArticle(fullArticle);
+      }
+    } catch (error) {
+      // Log the error but don't fail the request
+      console.error('Failed to update article in Elasticsearch:', error);
+    }
 
     return {
       article: await this.mapToArticleResponse({
