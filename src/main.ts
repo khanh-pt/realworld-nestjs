@@ -13,6 +13,7 @@ import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { AuthGuard } from './guards/auth.guard';
 import { UserService } from '@/api/user/user.service';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -64,6 +65,9 @@ async function bootstrap() {
 
   // Set global prefix for all routes
   app.setGlobalPrefix('api');
+
+  // Global interceptors - log info request/response
+  app.useGlobalInterceptors(new LoggingInterceptor());
 
   app.useGlobalGuards(
     new AuthGuard(configService, jwtService, userService, reflector),
