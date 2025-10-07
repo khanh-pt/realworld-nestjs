@@ -1,7 +1,9 @@
 import { JwtPayload } from '@/api/jwt/types/jwt-payload.type';
 import { UserPayload } from '@/api/jwt/types/user-payload.type';
+import { UserService } from '@/api/user/user.service';
 import { AllConfigType } from '@/config/config.type';
 import { IS_PUBLIC } from '@/constants/app.constant';
+import { CurrentUser } from 'src/types/request.type';
 import {
   CanActivate,
   ExecutionContext,
@@ -18,10 +20,11 @@ export class AuthGuard implements CanActivate {
   constructor(
     private configService: ConfigService<AllConfigType>,
     private jwtService: JwtService,
+    private userService: UserService,
     private reflector: Reflector,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [
       context.getHandler(),
       context.getClass(),
@@ -47,11 +50,23 @@ export class AuthGuard implements CanActivate {
           }),
         },
       );
+      const user = await this.userService.findById(payload.id);
 
-      request['user'] = payload;
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      const currentUser: CurrentUser = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        bio: user.bio,
+        image: user.image,
+      };
+
+      request['currentUser'] = currentUser;
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Invalid or expired token';
+      const errorMessage = err instanceof Error ? err.message : 'Unauthorized';
       throw new UnauthorizedException(errorMessage);
     }
 
