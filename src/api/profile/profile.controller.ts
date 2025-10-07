@@ -1,4 +1,12 @@
-import { Controller, Delete, Get, Param, Post, Request } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Request,
+} from '@nestjs/common';
 import { AuthenticatedRequest, CurrentUser } from 'src/types/request.type';
 import { ProfileService } from './profile.service';
 import { GetCurrentUser } from 'src/decorators/get-current-user.decorator';
@@ -18,6 +26,7 @@ export class ProfileController {
   }
 
   @Post('/:username/follow')
+  @HttpCode(200)
   async followUser(
     @Request() req: AuthenticatedRequest,
     @Param('username') username: string,

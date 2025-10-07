@@ -6,6 +6,7 @@ import {
   HttpCode,
   Param,
   Post,
+  Put,
   Query,
   Request,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ import { GetCurrentUser } from 'src/decorators/get-current-user.decorator';
 import { GetArticleResDto } from './dto/get-article.res.dto';
 import { GetAllArticlesReqDto } from './dto/get-all-articles.req.dto';
 import { GetAllArticlesResDto } from './dto/get-all-articles.res.dto';
+import { UpdateArticleReqDto } from './dto/update-article.req.dto';
 
 @Controller('articles')
 export class ArticleController {
@@ -72,5 +74,14 @@ export class ArticleController {
     @Request() req: AuthenticatedRequest,
   ): Promise<void> {
     await this.articleService.deleteArticle(slug, req.currentUser);
+  }
+
+  @Put(':slug')
+  async updateArticle(
+    @Request() req: AuthenticatedRequest,
+    @Param('slug') slug: string,
+    @Body() dto: UpdateArticleReqDto,
+  ): Promise<{ article: GetArticleResDto }> {
+    return this.articleService.updateArticle(req.currentUser, slug, dto);
   }
 }

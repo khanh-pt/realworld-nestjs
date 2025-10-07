@@ -12,6 +12,7 @@ import { FollowEntity } from '../follow/entities/follow.entity';
 import slug from 'slug';
 import { GetArticleResDto } from './dto/get-article.res.dto';
 import { UserEntity } from '../user/entities/user.entity';
+import { UpdateArticleReqDto } from './dto/update-article.req.dto';
 
 @Injectable()
 export class ArticleService {
@@ -37,7 +38,8 @@ export class ArticleService {
       .leftJoinAndSelect('article.author', 'author')
       .leftJoinAndSelect('article.tags', 'tags')
       .leftJoinAndSelect('article.users', 'users')
-      .orderBy('article.createdAt', 'DESC');
+      .orderBy('article.createdAt', 'DESC')
+      .addOrderBy('tags.id', 'DESC');
 
     // Filter by tag
     if (tag) {
@@ -80,10 +82,7 @@ export class ArticleService {
   ): Promise<{ article: CreateArticleResDto }> {
     const article = this.articleRepository.create({
       ...dto.article,
-      slug:
-        slug(dto.article.title, { lower: true }) +
-        '-' +
-        ((Math.random() * Math.pow(36, 6)) | 0).toString(36),
+      slug: this.generateSlug(dto.article.title),
       author: currentUser,
     });
     const savedArticle = await this.articleRepository.save(article);
@@ -122,6 +121,11 @@ export class ArticleService {
     const article = await this.articleRepository.findOne({
       where: { slug },
       relations: ['author', 'tags', 'users'],
+      order: {
+        tags: {
+          id: 'DESC',
+        },
+      },
     });
 
     if (!article) {
@@ -138,6 +142,11 @@ export class ArticleService {
     const article = await this.articleRepository.findOne({
       where: { slug },
       relations: ['author', 'tags', 'users'],
+      order: {
+        tags: {
+          id: 'DESC',
+        },
+      },
     });
 
     if (!article) {
@@ -165,6 +174,11 @@ export class ArticleService {
     const article = await this.articleRepository.findOne({
       where: { slug },
       relations: ['author', 'tags', 'users'],
+      order: {
+        tags: {
+          id: 'DESC',
+        },
+      },
     });
 
     if (!article) {
@@ -195,6 +209,40 @@ export class ArticleService {
     }
 
     await this.articleRepository.remove(article);
+  }
+
+  async updateArticle(
+    currentUser: CurrentUser,
+    slug: string,
+    dto: UpdateArticleReqDto,
+  ): Promise<{ article: GetArticleResDto }> {
+    const article = await this.articleRepository.findOne({
+      where: { slug, author: { id: currentUser.id } },
+      relations: ['author', 'tags', 'users'],
+      order: {
+        tags: {
+          id: 'DESC',
+        },
+      },
+    });
+
+    if (!article) {
+      throw new Error('Article not found');
+    }
+
+    const originalTitle = article.title;
+
+    this.articleRepository.merge(article, dto.article);
+
+    if (dto.article.title && dto.article.title !== originalTitle) {
+      article.slug = this.generateSlug(dto.article.title);
+    }
+
+    const updatedArticle = await this.articleRepository.save(article);
+
+    return {
+      article: await this.mapToArticleResponse(updatedArticle, currentUser),
+    };
   }
 
   private async mapToArticleResponse(
@@ -231,5 +279,13 @@ export class ArticleService {
         following,
       },
     };
+  }
+
+  private generateSlug(title: string): string {
+    return (
+      slug(title, { lower: true }) +
+      '-' +
+      ((Math.random() * Math.pow(36, 6)) | 0).toString(36)
+    );
   }
 }
