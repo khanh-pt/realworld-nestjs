@@ -1,19 +1,20 @@
 import { ApiModule } from '@/api/api.module';
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import jwtConfig from '@/api/jwt/config/jwt.config';
 import appConfig from '@/config/app.config';
 import databaseConfig from '@/database/config/database.config';
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { I18nModule, QueryResolver } from 'nestjs-i18n';
 import * as path from 'path';
-import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { AllConfigType } from './config/config.type';
 import TypeOrmCustomLogger from './utils/typeorm-custom-logger';
 
 const configModule = ConfigModule.forRoot({
   isGlobal: true,
-  load: [appConfig, databaseConfig],
+  load: [appConfig, databaseConfig, jwtConfig],
   envFilePath: ['.env'],
 });
 
