@@ -112,4 +112,17 @@ export class ArticleController {
   ): Promise<{ comments: CreateCommentResDto[] }> {
     return this.articleService.getComments(slug, currentUser);
   }
+
+  @Delete(':slug/comments/:id')
+  async deleteComment(
+    @Request() req: AuthenticatedRequest,
+    @Param('slug') slug: string,
+    @Param('id') id: number,
+  ): Promise<void> {
+    await this.articleService.deleteComment({
+      currentUser: req.currentUser,
+      slug,
+      id,
+    });
+  }
 }
