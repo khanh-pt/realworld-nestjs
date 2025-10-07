@@ -1,14 +1,18 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import appConfig from '@/config/app.config';
+import databaseConfig from '@/database/config/database.config';
 import { I18nModule, QueryResolver } from 'nestjs-i18n';
 import * as path from 'path';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { AllConfigType } from './config/config.type';
+import TypeOrmCustomLogger from './utils/typeorm-custom-logger';
 
 const configModule = ConfigModule.forRoot({
   isGlobal: true,
-  load: [appConfig],
+  load: [appConfig, databaseConfig],
   envFilePath: ['.env'],
 });
 
@@ -22,8 +26,30 @@ const i18nModule = I18nModule.forRoot({
   typesOutputPath: path.join(__dirname, '../src/generated/i18n.generated.ts'),
 });
 
+const dbModule = TypeOrmModule.forRootAsync({
+  inject: [ConfigService],
+  useFactory: (configService: ConfigService<AllConfigType>) => {
+    return {
+      type: configService.get('database.type', { infer: true }),
+      host: configService.get('database.host', { infer: true }),
+      port: configService.get('database.port', { infer: true }),
+      username: configService.get('database.username', { infer: true }),
+      password: configService.get('database.password', { infer: true }),
+      database: configService.get('database.name', { infer: true }),
+      entities: [],
+      synchronize: configService.get('database.synchronize', { infer: true }),
+      logger: TypeOrmCustomLogger.getInstance(
+        'default',
+        configService.get('database.logging', { infer: true })
+          ? ['error', 'warn', 'query', 'schema']
+          : ['error', 'warn'],
+      ),
+    } as TypeOrmModuleOptions;
+  },
+});
+
 @Module({
-  imports: [configModule, i18nModule],
+  imports: [configModule, i18nModule, dbModule],
   controllers: [AppController],
   providers: [AppService],
 })
