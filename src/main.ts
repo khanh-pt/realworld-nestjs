@@ -21,6 +21,14 @@ async function bootstrap() {
   const reflector = app.get(Reflector);
   const port = configService.getOrThrow('app.port', { infer: true });
 
+  // Enable CORS
+  app.enableCors({
+    origin: true, // Allow all origins for development
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
+
   // Set global prefix for all routes
   app.setGlobalPrefix('api');
 
