@@ -9,7 +9,9 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm/repository/Repository';
+import { JwtPayload } from '../jwt/types/jwt-payload.type';
 import { UserPayload } from '../jwt/types/user-payload.type';
+import { GetUserResDto } from './dto/get-user.res.dto';
 import { LoginReqDto } from './dto/login.req.dto';
 import { LoginResDto } from './dto/login.res.dto';
 import { RegisterReqDto } from './dto/register.req.dto';
@@ -72,6 +74,28 @@ export class UserService {
         token: await this.generateAccessToken({ id: user.id }),
         bio: user.bio,
         image: user.image,
+      },
+    };
+  }
+
+  async getUser(
+    user: UserPayload & JwtPayload,
+  ): Promise<{ user: GetUserResDto }> {
+    const foundUser = await this.userRepository.findOne({
+      where: { id: user.id },
+    });
+
+    if (!foundUser) {
+      throw new UnauthorizedException(`User id: ${user.id} not found`);
+    }
+
+    return {
+      user: {
+        username: foundUser.username,
+        email: foundUser.email,
+        token: await this.generateAccessToken({ id: user.id }),
+        bio: foundUser.bio,
+        image: foundUser.image,
       },
     };
   }
