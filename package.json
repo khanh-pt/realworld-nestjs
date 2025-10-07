@@ -25,13 +25,16 @@
     "migration:revert": "pnpm typeorm migration:revert",
     "migration:show": "pnpm typeorm migration:show",
     "seed": "ts-node -r tsconfig-paths/register src/console/seed.ts",
-    "seed:summary": "ts-node -r tsconfig-paths/register src/console/seed-summary.ts"
+    "seed:summary": "ts-node -r tsconfig-paths/register src/console/seed-summary.ts",
+    "reindex:articles": "ts-node -r tsconfig-paths/register src/console/reindex-articles.ts"
   },
   "dependencies": {
+    "@elastic/elasticsearch": "^8.11.0",
     "@google-cloud/storage": "^7.17.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
+    "@nestjs/elasticsearch": "^11.1.0",
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.2.0",
@@ -56,6 +59,7 @@
     "@nestjs/testing": "^11.0.1",
     "@swc/cli": "^0.6.0",
     "@swc/core": "^1.10.7",
+    "@types/elasticsearch": "^5.0.43",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.7",
