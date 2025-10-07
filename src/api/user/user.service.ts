@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm/repository/Repository';
+import { UserPayload } from '../jwt/types/user-payload.type';
 import { LoginReqDto } from './dto/login.req.dto';
 import { LoginResDto } from './dto/login.res.dto';
 import { RegisterReqDto } from './dto/register.req.dto';
@@ -48,7 +49,7 @@ export class UserService {
       user: {
         username: user.username,
         email: user.email,
-        token: await this.generateAccessToken({ user_id: user.id }),
+        token: await this.generateAccessToken({ id: user.id }),
         bio: user.bio,
         image: user.image,
       },
@@ -68,18 +69,16 @@ export class UserService {
       user: {
         username: user.username,
         email: user.email,
-        token: await this.generateAccessToken({ user_id: user.id }),
+        token: await this.generateAccessToken({ id: user.id }),
         bio: user.bio,
         image: user.image,
       },
     };
   }
 
-  private async generateAccessToken(data: {
-    user_id: number;
-  }): Promise<string> {
+  private async generateAccessToken(userPayload: UserPayload): Promise<string> {
     return await this.jwtService.signAsync(
-      { user_id: data.user_id },
+      { id: userPayload.id },
       {
         secret: this.configService.getOrThrow('jwt.secret', { infer: true }),
         expiresIn: this.configService.getOrThrow('jwt.expiresIn', {
