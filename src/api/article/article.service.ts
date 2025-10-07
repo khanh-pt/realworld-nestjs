@@ -16,10 +16,17 @@ import { UpdateArticleReqDto } from './dto/update-article.req.dto';
 import { CreateCommentReqDto } from '../comment/dto/create-comment.req.dto';
 import { CreateCommentResDto } from '../comment/dto/create-comment.res.dto';
 import { CommentEntity } from '../comment/entities/comment.entity';
+import {
+  ArticleFileEntity,
+  RoleEnum,
+} from '../article-file/entities/article-file.entity';
+import { FileEntity } from '../file/entities/file.entity';
+import { FileService } from '../file/file.service';
 
 @Injectable()
 export class ArticleService {
   constructor(
+    private readonly fileService: FileService,
     @InjectRepository(ArticleEntity)
     private readonly articleRepository: Repository<ArticleEntity>,
     @InjectRepository(FollowEntity)
@@ -30,6 +37,10 @@ export class ArticleService {
     private readonly userRepository: Repository<UserEntity>,
     @InjectRepository(CommentEntity)
     private readonly commentRepository: Repository<CommentEntity>,
+    @InjectRepository(FileEntity)
+    private readonly fileRepository: Repository<FileEntity>,
+    @InjectRepository(ArticleFileEntity)
+    private readonly articleFileRepository: Repository<ArticleFileEntity>,
   ) {}
 
   async findAll(
@@ -72,8 +83,10 @@ export class ArticleService {
     const followingIds = await this.getFollowingIds(currentUser);
 
     return {
-      articles: articles.map((article) =>
-        this.mapToArticleResponse({ article, currentUser, followingIds }),
+      articles: await Promise.all(
+        articles.map((article) =>
+          this.mapToArticleResponse({ article, currentUser, followingIds }),
+        ),
       ),
       articlesCount: total,
     };
@@ -83,6 +96,21 @@ export class ArticleService {
     currentUser: CurrentUser,
     dto: CreateArticleReqDto,
   ): Promise<{ article: CreateArticleResDto }> {
+    // check valid fileId, key and role if provided
+    if (dto.article.fileId && dto.article.key && dto.article.role) {
+      if (!Object.values(RoleEnum).includes(dto.article.role as RoleEnum)) {
+        throw new Error('Invalid role. Must be thumbnail, image, or video.');
+      }
+    }
+
+    const file = await this.fileRepository.findOne({
+      where: { id: dto.article.fileId, key: dto.article.key },
+    });
+
+    if (!file) {
+      throw new Error('File not found with the provided fileId and key.');
+    }
+
     const article = this.articleRepository.create({
       ...dto.article,
       slug: this.generateSlug(dto.article.title),
@@ -112,10 +140,30 @@ export class ArticleService {
       }
     }
 
+    const articleFile = await this.articleFileRepository.findOne({
+      where: {
+        articleId: savedArticle.id,
+        fileId: file.id,
+        role: dto.article.role as RoleEnum,
+      },
+    });
+
+    if (!articleFile) {
+      const newArticleFile = this.articleFileRepository.create({
+        articleId: savedArticle.id,
+        fileId: file.id,
+        role: dto.article.role as RoleEnum,
+      });
+      await this.articleFileRepository.save(newArticleFile);
+    }
+
+    const articleFiles = await this.getArticleFiles(article.id);
+
     return {
-      article: this.mapToArticleResponse({
+      article: await this.mapToArticleResponse({
         article: savedArticle,
         currentUser,
+        articleFiles,
       }),
     };
   }
@@ -140,11 +188,14 @@ export class ArticleService {
 
     const followingIds = await this.getFollowingIds(currentUser);
 
+    const articleFiles = await this.getArticleFiles(article.id);
+
     return {
-      article: this.mapToArticleResponse({
+      article: await this.mapToArticleResponse({
         article,
         currentUser,
         followingIds,
+        articleFiles,
       }),
     };
   }
@@ -181,7 +232,7 @@ export class ArticleService {
     const followingIds = await this.getFollowingIds(currentUser);
 
     return {
-      article: this.mapToArticleResponse({
+      article: await this.mapToArticleResponse({
         article,
         currentUser,
         followingIds,
@@ -220,7 +271,7 @@ export class ArticleService {
     const followingIds = await this.getFollowingIds(currentUser);
 
     return {
-      article: this.mapToArticleResponse({
+      article: await this.mapToArticleResponse({
         article,
         currentUser,
         followingIds,
@@ -270,7 +321,7 @@ export class ArticleService {
     const updatedArticle = await this.articleRepository.save(article);
 
     return {
-      article: this.mapToArticleResponse({
+      article: await this.mapToArticleResponse({
         article: updatedArticle,
         currentUser,
       }),
@@ -345,15 +396,17 @@ export class ArticleService {
     await this.commentRepository.remove(comment);
   }
 
-  private mapToArticleResponse({
+  private async mapToArticleResponse({
     article,
     currentUser,
     followingIds = [],
+    articleFiles = [],
   }: {
     article: ArticleEntity;
     currentUser?: CurrentUser;
     followingIds?: number[];
-  }): CreateArticleResDto {
+    articleFiles?: { file: FileEntity; role: RoleEnum }[];
+  }): Promise<CreateArticleResDto> {
     const following = followingIds.includes(article.author.id);
 
     const favorited =
@@ -364,6 +417,7 @@ export class ArticleService {
     const favoritesCount = article.users?.length || 0;
 
     return {
+      id: article.id,
       slug: article.slug,
       title: article.title,
       description: article.description,
@@ -381,6 +435,7 @@ export class ArticleService {
         image: article.author.image,
         following,
       },
+      files: await this.fileService.serializeFiles(articleFiles),
     };
   }
 
@@ -426,5 +481,16 @@ export class ArticleService {
       '-' +
       ((Math.random() * Math.pow(36, 6)) | 0).toString(36)
     );
+  }
+
+  private async getArticleFiles(
+    articleId: number,
+  ): Promise<{ file: FileEntity; role: RoleEnum }[]> {
+    const articleFiles = await this.articleFileRepository.find({
+      where: { articleId },
+      relations: ['file'],
+    });
+
+    return articleFiles.map((af) => ({ file: af.file, role: af.role }));
   }
 }
