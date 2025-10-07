@@ -5,6 +5,7 @@ import {
   Column,
   Entity,
   Index,
+  ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -39,6 +40,9 @@ export class UserEntity extends AbstractEntity {
 
   @OneToMany(() => ArticleEntity, (article) => article.author)
   articles: ArticleEntity[];
+
+  @ManyToMany(() => ArticleEntity, (article) => article.users)
+  favoritedArticles: ArticleEntity[];
 
   // Store original password after loading from database
   private originalPassword: string;

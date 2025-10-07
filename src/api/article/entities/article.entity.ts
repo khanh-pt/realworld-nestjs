@@ -53,4 +53,18 @@ export class ArticleEntity extends AbstractEntity {
     },
   })
   tags: TagEntity[];
+
+  @ManyToMany(() => UserEntity, (user) => user.articles)
+  @JoinTable({
+    name: 'article_users',
+    joinColumn: {
+      name: 'article_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'user_id',
+      referencedColumnName: 'id',
+    },
+  })
+  users: UserEntity[];
 }
