@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Request } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, Request } from '@nestjs/common';
 import { Public } from 'src/decorators/public.decorator';
 import { AuthenticatedRequest } from 'src/types/request.type';
 import { ProfileService } from './profile.service';
@@ -19,5 +19,13 @@ export class ProfileController {
     @Param('username') username: string,
   ) {
     return await this.profileService.followUser(req.currentUser.id, username);
+  }
+
+  @Delete('/:username/follow')
+  async unfollowUser(
+    @Request() req: AuthenticatedRequest,
+    @Param('username') username: string,
+  ) {
+    return await this.profileService.unfollowUser(req.currentUser.id, username);
   }
 }
