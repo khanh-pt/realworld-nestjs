@@ -10,6 +10,7 @@ import { CommentEntity } from '../comment/entities/comment.entity';
 import { FileService } from '../file/file.service';
 import { FileEntity } from '../file/entities/file.entity';
 import { ArticleFileEntity } from '../article-file/entities/article-file.entity';
+import { ArticleSearchModule } from '../article-search/article-search.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ArticleFileEntity } from '../article-file/entities/article-file.entity'
       FileEntity,
       ArticleFileEntity,
     ]),
+    ArticleSearchModule,
   ],
   controllers: [ArticleController],
   providers: [ArticleService, FileService],
