@@ -4,3 +4,5 @@ export enum Environment {
   staging = 'staging',
   production = 'production',
 }
+
+export const IS_PUBLIC = 'isPublic';
