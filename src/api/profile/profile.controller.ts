@@ -11,7 +11,9 @@ import { AuthenticatedRequest, CurrentUser } from 'src/types/request.type';
 import { ProfileService } from './profile.service';
 import { GetCurrentUser } from 'src/decorators/get-current-user.decorator';
 import { AuthOptional } from 'src/decorators/auth-optional.decorator';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Profiles')
 @Controller('profiles')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}

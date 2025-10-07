@@ -12,6 +12,7 @@ import { AllConfigType } from './config/config.type';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { AuthGuard } from './guards/auth.guard';
 import { UserService } from '@/api/user/user.service';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -20,6 +21,38 @@ async function bootstrap() {
   const userService = app.get(UserService);
   const reflector = app.get(Reflector);
   const port = configService.getOrThrow('app.port', { infer: true });
+
+  // swagger
+  const config = new DocumentBuilder()
+    .setTitle('NestJS RealWorld API')
+    .setDescription(
+      'A RealWorld API implementation built with NestJS, TypeORM, and JWT authentication. This API provides endpoints for user authentication, article management, comments, and user profiles.',
+    )
+    .setVersion('1.0')
+    .addTag('Users', 'User profile management and authentication')
+    .addTag('Articles', 'Article CRUD operations, favorites, and feed')
+    .addTag('Profiles', 'User profile operations and following/unfollowing')
+    .addTag('Tags', 'Article tag management')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description:
+          'JWT Authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"',
+      },
+      'JWT-auth',
+    )
+    .addServer('http://localhost:3333', 'Development server')
+    .setContact(
+      'khanhpt-2853',
+      'https://github.com/khanhpt-2853/realworld-nestjs',
+      'khanh.pt@example.com',
+    )
+    .setLicense('MIT', 'https://opensource.org/licenses/MIT')
+    .build();
+  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, documentFactory);
 
   // Enable CORS
   app.enableCors({
