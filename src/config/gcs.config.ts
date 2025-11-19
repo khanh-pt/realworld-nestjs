@@ -8,7 +8,10 @@ class EnvironmentVariablesValidator {
   GCS_PROJECT_ID: string;
 
   @IsString()
-  GCS_KEY_FILENAME: string;
+  GCS_CLIENT_EMAIL: string;
+
+  @IsString()
+  GCS_PRIVATE_KEY: string;
 
   @IsString()
   GCS_BUCKET_NAME: string;
@@ -23,7 +26,8 @@ export default registerAs<GcsConfig>('gcs', () => {
 
   return {
     projectId: validated.GCS_PROJECT_ID,
-    keyFilename: validated.GCS_KEY_FILENAME,
+    clientEmail: validated.GCS_CLIENT_EMAIL,
+    privateKey: validated.GCS_PRIVATE_KEY,
     bucketName: validated.GCS_BUCKET_NAME,
     signedUrlExpires: validated.GCS_SIGNED_URL_EXPIRES,
   };

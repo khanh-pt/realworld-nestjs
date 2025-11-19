@@ -24,9 +24,14 @@ export class FileService {
       projectId: this.configService.getOrThrow('gcs.projectId', {
         infer: true,
       }),
-      keyFilename: this.configService.getOrThrow('gcs.keyFilename', {
-        infer: true,
-      }),
+      credentials: {
+        client_email: this.configService.getOrThrow('gcs.clientEmail', {
+          infer: true,
+        }),
+        private_key: this.configService.getOrThrow('gcs.privateKey', {
+          infer: true,
+        }),
+      },
     });
     this.bucket = this.storage.bucket(
       this.configService.getOrThrow('gcs.bucketName', { infer: true }),
