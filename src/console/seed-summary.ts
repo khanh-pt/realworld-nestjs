@@ -6,11 +6,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { config } from 'dotenv';
 import { AppDataSource } from '../database/data-source';
-
-// Load environment variables
-config();
 
 // Define types for database query results
 interface CountResult {

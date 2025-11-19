@@ -1,8 +1,4 @@
-import { config } from 'dotenv';
 import { DataSource, DataSourceOptions } from 'typeorm';
-
-// Load environment variables from .env file
-config();
 
 export const AppDataSource = new DataSource({
   type: process.env.DATABASE_TYPE,

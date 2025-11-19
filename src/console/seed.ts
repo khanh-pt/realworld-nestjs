@@ -1,10 +1,6 @@
 #!/usr/bin/env ts-node
 
-import { config } from 'dotenv';
 import { DatabaseSeeder } from '../database/seeds/seed';
-
-// Load environment variables
-config();
 
 async function runSeed() {
   console.log('🌱 Starting database seeding process...\n');

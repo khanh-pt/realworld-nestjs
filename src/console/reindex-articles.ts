@@ -1,15 +1,11 @@
 #!/usr/bin/env ts-node
 
-import { config } from 'dotenv';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { ArticleSearchService } from '../api/article-search/article-search.service';
 import { Repository } from 'typeorm';
 import { ArticleEntity } from '../api/article/entities/article.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
-
-// Load environment variables
-config();
 
 async function reindexArticles() {
   console.log('🔍 Starting Elasticsearch article reindexing...\n');
