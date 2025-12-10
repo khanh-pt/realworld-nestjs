@@ -52,7 +52,7 @@ export class ArticleEntity extends AbstractEntity {
       referencedColumnName: 'id',
     },
   })
-  tags: TagEntity[];
+  tags: TagEntity[] | undefined;
 
   @ManyToMany(() => UserEntity, (user) => user.articles)
   @JoinTable({

@@ -77,10 +77,10 @@ export class UserController {
     schema: {
       example: {
         user: {
-          id: 1,
           username: 'johndoe',
           email: 'john.doe@example.com',
           token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+          refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
           bio: 'Software developer',
           image: 'https://example.com/profile.jpg',
         },
@@ -92,6 +92,22 @@ export class UserController {
     return await this.userService.login(dto);
   }
 
+  @Public()
+  @Post('users/refresh-token')
+  @ApiOperation({
+    summary: 'Refresh JWT token',
+    description: 'Generate a new JWT token using a valid refresh token',
+  })
+  @ApiOkResponse({
+    description: 'Token successfully refreshed',
+    schema: {
+      example: {
+        token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or expired refresh token' })
   async refreshToken(
     @Body() dto: RefreshTokenReqDto,
   ): Promise<RefreshTokenResDto> {

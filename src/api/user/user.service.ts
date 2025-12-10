@@ -1,9 +1,9 @@
 import { AllConfigType } from '@/config/config.type';
 import { verifyPassword } from '@/utils/hashing.util';
 import {
-  ConflictException,
   Injectable,
   UnauthorizedException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -24,6 +24,7 @@ import { SessionPayload } from '../jwt/types/session-payload.type';
 import { SessionEntity } from './entities/session.entity';
 import * as crypto from 'crypto';
 import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util';
+import { ValidationError } from 'class-validator/types/validation/ValidationError';
 
 @Injectable()
 export class UserService {
@@ -37,12 +38,19 @@ export class UserService {
   ) {}
 
   async register(dto: RegisterReqDto): Promise<{ user: RegisterResDto }> {
+    const errors: ValidationError[] = [];
     const isExistUserName = await this.userRepository.exists({
       where: { username: dto.user.username },
     });
 
     if (isExistUserName) {
-      throw new ConflictException('Username already exists');
+      const err = {
+        property: 'username',
+        constraints: {
+          unique: 'Username already exists',
+        },
+      };
+      errors.push(err);
     }
 
     const isExistEmail = await this.userRepository.exists({
@@ -50,7 +58,17 @@ export class UserService {
     });
 
     if (isExistEmail) {
-      throw new ConflictException('Email already exists');
+      const err = {
+        property: 'email',
+        constraints: {
+          unique: 'Email already exists',
+        },
+      };
+      errors.push(err);
+    }
+
+    if (errors.length > 0) {
+      throw new UnprocessableEntityException({ message: errors });
     }
 
     const user = this.userRepository.create(dto.user);

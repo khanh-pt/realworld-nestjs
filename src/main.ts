@@ -45,6 +45,10 @@ async function bootstrap() {
       'JWT-auth',
     )
     .addServer('http://localhost:3333', 'Development server')
+    .addServer(
+      'https://realworld-nestjs-production.up.railway.app/',
+      'Production server',
+    )
     .setContact(
       'khanhpt-2853',
       'https://github.com/khanhpt-2853/realworld-nestjs',

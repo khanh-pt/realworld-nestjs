@@ -464,7 +464,7 @@ export class ArticleService {
       title: article.title,
       description: article.description,
       body: article.body,
-      tagList: article.tags
+      tagList: (article.tags || [])
         .sort((a, b) => b.id - a.id) // Sort tags by ID in descending order
         .map((tag) => tag.name),
       createdAt: article.createdAt.toISOString(),
