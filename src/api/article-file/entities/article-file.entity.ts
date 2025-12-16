@@ -1,5 +1,12 @@
 import { FileEntity } from '@/api/file/entities/file.entity';
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 export enum RoleEnum {
   THUMBNAILS = 'thumbnails',
@@ -10,7 +17,7 @@ export enum RoleEnum {
 @Entity('article_files')
 @Index('UQ_article_file', ['articleId', 'fileId'], { unique: true })
 export class ArticleFileEntity {
-  @Column({ primary: true, primaryKeyConstraintName: 'PK_article_file' })
+  @PrimaryGeneratedColumn({ primaryKeyConstraintName: 'PK_article_file_id' })
   id: number;
 
   @Column({ name: 'article_id' })

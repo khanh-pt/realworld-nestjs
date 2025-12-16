@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { ArticleEntity } from './entities/article.entity';
 import { GetAllArticlesReqDto } from './dto/get-all-articles.req.dto';
 import { GetAllArticlesResDto } from './dto/get-all-articles.res.dto';
@@ -23,6 +23,7 @@ import {
 import { FileEntity } from '../file/entities/file.entity';
 import { FileService } from '../file/file.service';
 import { ArticleSearchService } from '../article-search/article-search.service';
+import { ValidationError } from 'class-validator/types/validation/ValidationError';
 
 @Injectable()
 export class ArticleService {
@@ -84,11 +85,38 @@ export class ArticleService {
 
     const followingIds = await this.getFollowingIds(currentUser);
 
+    // get all articleFiles for the articles
+    // with single query then index by articleId
+    const articleFilesByArticleId = new Map<
+      number,
+      { file: FileEntity; role: RoleEnum }[]
+    >();
+    const articleIds = articles.map((article) => article.id);
+    const articleFiles = await this.articleFileRepository.find({
+      where: { articleId: In(articleIds) },
+      relations: ['file'],
+    });
+    articleFiles.forEach((af) => {
+      if (!articleFilesByArticleId.has(af.articleId)) {
+        articleFilesByArticleId.set(af.articleId, []);
+      }
+      articleFilesByArticleId
+        .get(af.articleId)!
+        .push({ file: af.file, role: af.role });
+    });
+
     return {
       articles: await Promise.all(
-        articles.map((article) =>
-          this.mapToArticleResponse({ article, currentUser, followingIds }),
-        ),
+        articles.map((article) => {
+          const articleFiles = articleFilesByArticleId.get(article.id) || [];
+
+          return this.mapToArticleResponse({
+            article,
+            articleFiles,
+            currentUser,
+            followingIds,
+          });
+        }),
       ),
       articlesCount: total,
     };
@@ -99,10 +127,17 @@ export class ArticleService {
     dto: CreateArticleReqDto,
   ): Promise<{ article: CreateArticleResDto }> {
     let file: FileEntity | null = null;
+    const errors: ValidationError[] = [];
     // check valid fileId, key and role if provided
     if (dto.article.fileId && dto.article.key && dto.article.role) {
       if (!Object.values(RoleEnum).includes(dto.article.role as RoleEnum)) {
-        throw new Error('Invalid role. Must be thumbnail, image, or video.');
+        const err = {
+          property: 'role',
+          constraints: {
+            unique: 'Invalid role. Must be thumbnails, images, or videos.',
+          },
+        };
+        errors.push(err);
       }
 
       file = await this.fileRepository.findOne({
@@ -110,8 +145,32 @@ export class ArticleService {
       });
 
       if (!file) {
-        throw new Error('File not found with the provided fileId and key.');
+        const err = {
+          property: 'fileId/key',
+          constraints: {
+            unique: 'File not found with the provided fileId and key.',
+          },
+        };
+        errors.push(err);
       }
+    }
+
+    const isExistTitle = await this.articleRepository.exists({
+      where: { title: dto.article.title },
+    });
+
+    if (isExistTitle) {
+      const err = {
+        property: 'title',
+        constraints: {
+          unique: 'Title already exists.',
+        },
+      };
+      errors.push(err);
+    }
+
+    if (errors.length > 0) {
+      throw new UnprocessableEntityException({ message: errors });
     }
 
     const article = this.articleRepository.create({
