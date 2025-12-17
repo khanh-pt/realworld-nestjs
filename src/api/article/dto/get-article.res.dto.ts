@@ -1,4 +1,5 @@
 import { FileResDto } from '@/api/file/dto/file.res.dto';
+import { CurrentUser } from 'src/types/request.type';
 
 export class GetArticleResDto {
   id: number;
@@ -10,6 +11,7 @@ export class GetArticleResDto {
   description: string;
   tagList: string[];
   author: {
+    id: number;
     username: string;
     bio: string | null;
     image: string | null;

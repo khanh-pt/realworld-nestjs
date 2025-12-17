@@ -10,6 +10,7 @@ export class CreateArticleResDto {
   description: string;
   tagList: string[];
   author: {
+    id: number;
     username: string;
     bio: string | null;
     image: string | null;

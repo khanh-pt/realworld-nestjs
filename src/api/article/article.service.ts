@@ -1,6 +1,10 @@
-import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { ArticleEntity } from './entities/article.entity';
 import { GetAllArticlesReqDto } from './dto/get-all-articles.req.dto';
 import { GetAllArticlesResDto } from './dto/get-all-articles.res.dto';
@@ -132,7 +136,7 @@ export class ArticleService {
     if (dto.article.fileId && dto.article.key && dto.article.role) {
       if (!Object.values(RoleEnum).includes(dto.article.role as RoleEnum)) {
         const err = {
-          property: 'role',
+          property: 'file',
           constraints: {
             unique: 'Invalid role. Must be thumbnails, images, or videos.',
           },
@@ -146,7 +150,7 @@ export class ArticleService {
 
       if (!file) {
         const err = {
-          property: 'fileId/key',
+          property: 'file',
           constraints: {
             unique: 'File not found with the provided fileId and key.',
           },
@@ -183,22 +187,7 @@ export class ArticleService {
     if (savedArticle) {
       // create tag by tagList if needed
       if (dto.article.tagList && dto.article.tagList.length > 0) {
-        // Create tags and associate with article
-        const tags = await Promise.all(
-          dto.article.tagList.map(async (name) => {
-            const isTagExist = await this.tagRepository.findOne({
-              where: { name },
-            });
-            if (isTagExist) {
-              return isTagExist;
-            }
-            const tag = this.tagRepository.create({ name });
-            return this.tagRepository.save(tag);
-          }),
-        );
-        article.tags = tags;
-        // Save the article again to persist the tags relationship
-        await this.articleRepository.save(article);
+        await this.upsertArticleTags(savedArticle, dto.article.tagList);
       }
     }
 
@@ -249,7 +238,7 @@ export class ArticleService {
   async getArticle(
     slug: string,
     currentUser?: CurrentUser,
-  ): Promise<{ article: GetArticleResDto }> {
+  ): Promise<{ article: GetArticleResDto; currentUser?: CurrentUser }> {
     const article = await this.articleRepository.findOne({
       where: { slug },
       relations: ['author', 'tags', 'users'],
@@ -275,6 +264,7 @@ export class ArticleService {
         followingIds,
         articleFiles,
       }),
+      currentUser,
     };
   }
 
@@ -383,6 +373,36 @@ export class ArticleService {
     slug: string,
     dto: UpdateArticleReqDto,
   ): Promise<{ article: GetArticleResDto }> {
+    let file: FileEntity | null = null;
+    let errors: ValidationError[] = [];
+
+    // check valid fileId, key and role if provided
+    if (dto.article.fileId && dto.article.key && dto.article.role) {
+      if (!Object.values(RoleEnum).includes(dto.article.role as RoleEnum)) {
+        const err = {
+          property: 'file',
+          constraints: {
+            unique: 'Invalid role. Must be thumbnails, images, or videos.',
+          },
+        };
+        errors.push(err);
+      }
+
+      file = await this.fileRepository.findOne({
+        where: { id: dto.article.fileId, key: dto.article.key },
+      });
+
+      if (!file) {
+        const err = {
+          property: 'file',
+          constraints: {
+            unique: 'File not found with the provided fileId and key.',
+          },
+        };
+        errors.push(err);
+      }
+    }
+
     const article = await this.articleRepository.findOne({
       where: { slug, author: { id: currentUser.id } },
       relations: ['author', 'tags', 'users'],
@@ -394,7 +414,28 @@ export class ArticleService {
     });
 
     if (!article) {
-      throw new Error('Article not found');
+      // what eror to throw here? when user try to update article not theirs
+      throw new ForbiddenException(
+        'You do not have permission to update this article',
+      );
+    }
+
+    const isExistTitle = await this.articleRepository.exists({
+      where: { title: dto.article.title, id: Not(In([article.id])) },
+    });
+
+    if (isExistTitle) {
+      const err = {
+        property: 'title',
+        constraints: {
+          unique: 'Title already exists.',
+        },
+      };
+      errors.push(err);
+    }
+
+    if (errors.length > 0) {
+      throw new UnprocessableEntityException({ message: errors });
     }
 
     const originalTitle = article.title;
@@ -405,12 +446,27 @@ export class ArticleService {
       article.slug = this.generateSlug(dto.article.title);
     }
 
-    const updatedArticle = await this.articleRepository.save(article);
+    await this.articleRepository.save(article);
+
+    if (article) {
+      // create tag by tagList if needed
+      if (dto.article.tagList && dto.article.tagList.length >= 0) {
+        await this.upsertArticleTags(article, dto.article.tagList);
+      }
+
+      if (file) {
+        await this.upsertArticleFile(
+          article,
+          file,
+          dto.article.role as RoleEnum,
+        );
+      }
+    }
 
     // Update in Elasticsearch
     try {
       const fullArticle = await this.articleRepository.findOne({
-        where: { id: updatedArticle.id },
+        where: { id: article.id },
         relations: ['author', 'tags', 'users'],
       });
       if (fullArticle) {
@@ -423,7 +479,7 @@ export class ArticleService {
 
     return {
       article: await this.mapToArticleResponse({
-        article: updatedArticle,
+        article,
         currentUser,
       }),
     };
@@ -524,13 +580,14 @@ export class ArticleService {
       description: article.description,
       body: article.body,
       tagList: (article.tags || [])
-        .sort((a, b) => b.id - a.id) // Sort tags by ID in descending order
+        .sort((a, b) => a.id - b.id)
         .map((tag) => tag.name),
       createdAt: article.createdAt.toISOString(),
       updatedAt: article.updatedAt.toISOString(),
       favorited,
       favoritesCount,
       author: {
+        id: article.author.id,
         username: article.author.username,
         bio: article.author.bio,
         image: article.author.image,
@@ -593,5 +650,63 @@ export class ArticleService {
     });
 
     return articleFiles.map((af) => ({ file: af.file, role: af.role }));
+  }
+
+  private async upsertArticleTags(
+    article: ArticleEntity,
+    tagList: string[],
+  ): Promise<void> {
+    // Create tags and associate with article
+    const tags = await Promise.all(
+      tagList.map(async (name) => {
+        const isTagExist = await this.tagRepository.findOne({
+          where: { name },
+        });
+        if (isTagExist) {
+          return isTagExist;
+        }
+        const tag = this.tagRepository.create({ name });
+        return this.tagRepository.save(tag);
+      }),
+    );
+    article.tags = tags;
+    // Save the article again to persist the tags relationship
+    await this.articleRepository.save(article);
+  }
+
+  private async upsertArticleFile(
+    article: ArticleEntity,
+    file: FileEntity,
+    role: RoleEnum,
+  ): Promise<void> {
+    const articleFile = await this.articleFileRepository.findOne({
+      where: {
+        articleId: article.id,
+        fileId: file.id,
+        role: role,
+      },
+    });
+
+    if (!articleFile) {
+      const newArticleFile = this.articleFileRepository.create({
+        articleId: article.id,
+        fileId: file.id,
+        role,
+      });
+      await this.articleFileRepository.save(newArticleFile);
+
+      // remove other file with same role if exists
+      const otherArticleFiles = await this.articleFileRepository.find({
+        where: {
+          articleId: article.id,
+          fileId: Not(file.id),
+          role,
+        },
+      });
+
+      if (otherArticleFiles.length > 0) {
+        await this.articleFileRepository.remove(otherArticleFiles);
+      }
+    }
   }
 }

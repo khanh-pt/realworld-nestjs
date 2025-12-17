@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 class ArticleData {
@@ -33,6 +33,49 @@ class ArticleData {
   @IsOptional()
   @IsString()
   body?: string;
+
+  @ApiProperty({
+    description: 'List of tags associated with the article',
+    example: ['nestjs', 'backend', 'nodejs', 'typescript'],
+    type: [String],
+    required: false,
+    default: [],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tagList?: string[] = [];
+
+  // Allow add thumbnail
+  @ApiProperty({
+    description: 'ID of the thumbnail file associated with the article',
+    example: 1,
+    type: Number,
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  fileId?: number;
+
+  @ApiProperty({
+    description: 'Key of the thumbnail file associated with the article',
+    example: 'uploads/unique-file-key.jpg',
+    type: String,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  key?: string;
+
+  @ApiProperty({
+    description: 'Role of the file associated with the article',
+    example: 'thumbnail | image | video',
+    type: String,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  role?: string;
 }
 
 export class UpdateArticleReqDto {
