@@ -420,9 +420,11 @@ export class ArticleService {
       );
     }
 
-    const isExistTitle = await this.articleRepository.exists({
-      where: { title: dto.article.title, id: Not(In([article.id])) },
-    });
+    const isExistTitle =
+      dto.article.title &&
+      (await this.articleRepository.exists({
+        where: { title: dto.article.title, id: Not(In([article.id])) },
+      }));
 
     if (isExistTitle) {
       const err = {

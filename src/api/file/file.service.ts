@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,6 +10,7 @@ import { AllConfigType } from '@/config/config.type';
 import { FileResDto } from './dto/file.res.dto';
 import { RoleEnum } from '../article-file/entities/article-file.entity';
 import { RedisService } from '@/redis/redis.service';
+import { ValidationError } from 'class-validator';
 
 @Injectable()
 export class FileService {
@@ -43,23 +44,61 @@ export class FileService {
   async createPresignedUrl(
     createFileDto: CreateFileMetadataDto,
   ): Promise<PresignedUrlResponseDto> {
+    let errors: ValidationError[] = [];
+
     // Validate file type (only jpg, png)
-    const allowedContentTypes = ['image/jpeg', 'image/png'];
-    const allowedExtensions = ['.jpg', '.jpeg', '.png'];
+    const allowedContentTypes = ['image/jpeg', 'image/png', 'video/mp4'];
+    const allowedImageExtensions = ['.jpg', '.jpeg', '.png'];
+    const allowedVideoExtensions = ['.mp4'];
     const fileExtension = this.getFileExtension(
       createFileDto.filename,
     ).toLowerCase();
     if (
       !allowedContentTypes.includes(createFileDto.contentType) ||
-      !allowedExtensions.includes(fileExtension)
+      (!allowedImageExtensions.includes(fileExtension) &&
+        !allowedVideoExtensions.includes(fileExtension))
     ) {
-      throw new Error('Only JPG and PNG image files are allowed.');
+      const err = {
+        property: 'file',
+        constraints: {
+          error: 'Only JPG, PNG image files and MP4 video files are allowed.',
+        },
+      };
+      errors.push(err);
     }
 
     // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (createFileDto.size > maxSize) {
-      throw new Error('File size must not exceed 5MB.');
+    const maxImageSize = 5 * 1024 * 1024; // 5MB
+    const maxVideoSize = 200 * 1024 * 1024; // 200MB
+
+    if (
+      allowedImageExtensions.includes(fileExtension) &&
+      createFileDto.size > maxImageSize
+    ) {
+      const err = {
+        property: 'file',
+        constraints: {
+          error: 'Image size must not exceed 5MB.',
+        },
+      };
+      errors.push(err);
+    }
+
+    if (
+      allowedVideoExtensions.includes(fileExtension) &&
+      createFileDto.size > maxVideoSize
+    ) {
+      const err = {
+        property: 'file',
+        constraints: {
+          error: 'Video size must not exceed 200MB.',
+        },
+      };
+      errors.push(err);
+    }
+
+    if (errors.length > 0) {
+      throw new UnprocessableEntityException({ message: errors });
     }
 
     // Check if file with same checksum already exists
