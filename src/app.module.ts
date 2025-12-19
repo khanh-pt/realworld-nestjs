@@ -3,6 +3,7 @@ import jwtConfig from '@/api/jwt/config/jwt.config';
 import appConfig from '@/config/app.config';
 import gcsConfig from '@/config/gcs.config';
 import elasticsearchConfig from '@/config/elasticsearch.config';
+import redisConfig from '@/config/redis.config';
 import databaseConfig from '@/database/config/database.config';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -15,7 +16,14 @@ import { AllConfigType } from './config/config.type';
 
 const configModule = ConfigModule.forRoot({
   isGlobal: true,
-  load: [appConfig, databaseConfig, jwtConfig, gcsConfig, elasticsearchConfig],
+  load: [
+    appConfig,
+    databaseConfig,
+    jwtConfig,
+    gcsConfig,
+    redisConfig,
+    elasticsearchConfig,
+  ],
   envFilePath: ['.env'],
 });
 

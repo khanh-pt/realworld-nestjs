@@ -3,6 +3,7 @@ import { DatabaseConfig } from '@/database/config/database-config.type';
 import { AppConfig } from './app-config.type';
 import { GcsConfig } from './gcs-config.type';
 import { ElasticsearchConfig } from './elasticsearch-config.type';
+import { RedisConfig } from './redis-config.type';
 
 export type AllConfigType = {
   app: AppConfig;
@@ -10,4 +11,5 @@ export type AllConfigType = {
   jwt: JwtConfig;
   gcs: GcsConfig;
   elasticsearch: ElasticsearchConfig;
+  redis: RedisConfig;
 };

@@ -61,9 +61,22 @@ services:
       elasticsearch:
         condition: service_healthy
 
+  redis:
+    image: redis:7-alpine
+    container_name: nestjs-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - nestjs-network
+
 volumes:
   postgres_data:
   elasticsearch_data:
+  redis_data:
 
 networks:
   nestjs-network:

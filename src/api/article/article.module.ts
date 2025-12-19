@@ -7,10 +7,10 @@ import { TagEntity } from '../tag/entities/tag.entity';
 import { FollowEntity } from '../follow/entities/follow.entity';
 import { UserEntity } from '../user/entities/user.entity';
 import { CommentEntity } from '../comment/entities/comment.entity';
-import { FileService } from '../file/file.service';
 import { FileEntity } from '../file/entities/file.entity';
 import { ArticleFileEntity } from '../article-file/entities/article-file.entity';
 import { ArticleSearchModule } from '../article-search/article-search.module';
+import { FileModule } from '../file/file.module';
 
 @Module({
   imports: [
@@ -24,8 +24,9 @@ import { ArticleSearchModule } from '../article-search/article-search.module';
       ArticleFileEntity,
     ]),
     ArticleSearchModule,
+    FileModule,
   ],
   controllers: [ArticleController],
-  providers: [ArticleService, FileService],
+  providers: [ArticleService],
 })
 export class ArticleModule {}

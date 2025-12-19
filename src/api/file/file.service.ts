@@ -9,6 +9,7 @@ import { CreateFileMetadataDto, PresignedUrlResponseDto } from './dto/file.dto';
 import { AllConfigType } from '@/config/config.type';
 import { FileResDto } from './dto/file.res.dto';
 import { RoleEnum } from '../article-file/entities/article-file.entity';
+import { RedisService } from '@/redis/redis.service';
 
 @Injectable()
 export class FileService {
@@ -19,6 +20,7 @@ export class FileService {
     private readonly configService: ConfigService<AllConfigType>,
     @InjectRepository(FileEntity)
     private readonly fileRepository: Repository<FileEntity>,
+    private readonly redisService: RedisService,
   ) {
     this.storage = new Storage({
       projectId: this.configService.getOrThrow('gcs.projectId', {
@@ -170,15 +172,50 @@ export class FileService {
   }
 
   private async generateSignedUrlForDisplay(key: string): Promise<string> {
-    // public URL: `https://storage.googleapis.com/${this.bucket.name}/${fileEntity.key}`,
-    // private URL
+    const cacheKey = `file:display-url:${key}`;
+    const cachedUrl = await this.getCachedSignedUrl(cacheKey);
+    if (cachedUrl) {
+      return cachedUrl;
+    }
+
+    const expiresInSeconds = this.configService.getOrThrow(
+      'gcs.signedUrlExpires',
+      {
+        infer: true,
+      },
+    );
+
     const options: GetSignedUrlConfig = {
       version: 'v4',
       action: 'read', // For reading/displaying files
-      expires: Date.now() + 15 * 60 * 1000, // 15 minutes from now
+      expires: Date.now() + expiresInSeconds * 1000,
     };
 
     const [signedUrl] = await this.bucket.file(key).getSignedUrl(options);
+    await this.cacheSignedUrl(cacheKey, signedUrl, expiresInSeconds);
+
     return signedUrl;
+  }
+
+  private async getCachedSignedUrl(cacheKey: string): Promise<string | null> {
+    try {
+      return await this.redisService.getString(cacheKey);
+    } catch {
+      return null;
+    }
+  }
+
+  private async cacheSignedUrl(
+    cacheKey: string,
+    url: string,
+    expiresInSeconds: number,
+  ): Promise<void> {
+    const ttl = Math.max(1, expiresInSeconds - 60);
+
+    try {
+      await this.redisService.setString(cacheKey, url, ttl);
+    } catch {
+      return;
+    }
   }
 }

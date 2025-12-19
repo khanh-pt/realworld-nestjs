@@ -22,7 +22,8 @@
       "@/constants/*": ["src/constants/*"],
       "@/utils/*": ["src/utils/*"],
       "@/database/*": ["src/database/*"],
-      "@/api/*": ["src/api/*"]
+      "@/api/*": ["src/api/*"],
+      "@/redis/*": ["src/redis/*"]
     }
   }
 }
