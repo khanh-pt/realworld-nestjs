@@ -14,6 +14,10 @@ class EnvironmentVariablesValidator {
 
   @IsOptional()
   @IsString()
+  REDIS_USERNAME: string;
+
+  @IsOptional()
+  @IsString()
   REDIS_PASSWORD: string;
 
   @IsOptional()
@@ -27,6 +31,7 @@ export default registerAs<RedisConfig>('redis', () => {
   return {
     host: validated.REDIS_HOST,
     port: validated.REDIS_PORT,
+    username: validated.REDIS_USERNAME,
     password: validated.REDIS_PASSWORD,
     keyPrefix: validated.REDIS_KEY_PREFIX,
   };

@@ -18,6 +18,7 @@ import { RedisService } from './redis.service';
         return new Redis({
           host: redisOptions.host,
           port: redisOptions.port,
+          username: redisOptions.username,
           password: redisOptions.password,
           keyPrefix: redisOptions.keyPrefix,
         });
